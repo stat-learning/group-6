@@ -2,3 +2,4 @@
 
 - Hien Nguyen
 - YILIN LI 
+- Lyn Peterson
