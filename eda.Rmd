@@ -1,0 +1,98 @@
+---
+title: "Data_Analysis"
+author: "YILIN LI"
+date: "2019/11/18"
+output: pdf_document
+---
+
+```{r}
+# This part read idx files and store image data into train$x and 
+# test$x in matrix form, store corresponding labels in train$y 
+# and test$y in array form 
+load_image_file <- function(filename) {
+   ret = list()
+    f = file(filename,'rb')
+    readBin(f,'integer',n=1,size=4,endian='big')
+    ret$n = readBin(f,'integer',n=1,size=4,endian='big')
+    nrow = readBin(f,'integer',n=1,size=4,endian='big')
+    ncol = readBin(f,'integer',n=1,size=4,endian='big')
+    x = readBin(f,'integer',n=ret$n*nrow*ncol,size=1,signed=F)
+    ret$x = matrix(x, ncol=nrow*ncol, byrow=T)
+    close(f)
+    ret
+}
+
+load_label_file <- function(filename) {
+    f = file(filename,'rb')
+    readBin(f,'integer',n=1,size=4,endian='big')
+    n = readBin(f,'integer',n=1,size=4,endian='big')
+    y = readBin(f,'integer',n=n,size=1,signed=F)
+    close(f)
+    y
+}
+
+train <- load_image_file("train-images-idx3-ubyte")
+test <- load_image_file("t10k-images-idx3-ubyte")
+
+train$y <- load_label_file("train-labels-idx1-ubyte")
+test$y <- load_label_file("t10k-labels-idx1-ubyte")  
+
+```
+
+```{r}
+# This part displays first 25 images in train$x 
+par(mfrow=c(5,5))
+par(mar=c(0.1,0.1,0.1,0.1))
+for (i in 1:25){
+  image(matrix(train$x[i,],28)[,28:1])
+}
+```
+
+```{r}
+library(ggplot2)
+# create standardized pixels(all in range 0-1) and store in 
+# train$st, test$st 
+train$st <- train$x/255
+test$st <- test$x/255
+
+label <- seq(0,9) # a seq of digits 
+
+distance_mean <- rep(NA,10)
+distance_var <- rep(NA,10)
+mean_digits <- matrix(rep(0,7840),10)
+
+
+par(mfrow=c(2,5))
+# for each digit class, calculate the mean digit, mean distance from the mean digit and 
+# variance of the distance
+for(i in 1:10){
+  df <- train$st[train$y ==label[i],]   # create a df with only i-th digit
+  mean_digit <- colMeans(df)            # get the mean form for each digit(0-9)
+  mean_digits[i,] <- mean_digit         # store the mean form into mean_digits 
+  dif <- sweep(df,2,mean_digit)         # dif stores the difference for each image to its mean form 
+  distance <- rowSums(dif^2)            # an arrary stores Euclidean distance from each image to its mean form
+  distance_mean[i] <- mean(distance)
+  distance_var[i] <- var(distance)
+  # plot density of distance for each digit 
+  plot(density(distance), xlab = "distance", ylab = "density", main = as.character(label[i]))
+}
+
+# Display mean form for each digit
+par(mfrow=c(2,5))
+par(mar=c(0.1,0.1,0.1,0.1))
+for (i in 1:10){
+  image(matrix(mean_digits[i,],28)[,28:1]*255)
+}
+distance_mean
+distance_var
+```
+1. Density plot of distance from each image to its mean form for each digit. 
+
+2. The mean form for each digit 
+
+3. From distance_mean and distance_var for each digit, we can say that digit "2" has the lowest mean distance, which
+meansthat most people write it similarly. "3" has the highest mean distance, so people tend to write "3" in different
+ways. We also recognize that "6" and "9" have the highest distance variance, which means these two digits have the
+mostvariation in people's writing styles. 
+
+
