@@ -1,0 +1,58 @@
+---
+title: "Data_Analysis"
+author: "YILIN LI"
+date: "2019/11/18"
+output: pdf_document
+---
+
+```{r}
+# read train and test dataset
+library(idx2r);
+library(R.utils);
+URL <- "http://yann.lecun.com/exdb/mnist/"
+file_name <- "train-images-idx3-ubyte.gz"
+download.file(paste0(URL, file_name), "train-images-idx3-ubyte.gz")
+gunzip(file_name)
+train <- read_idx(gsub(pattern = "\\.gz", "", file_name))
+train_df <- data.frame(matrix(train, nrow = 60000))
+file_name <- "t10k-images-idx3-ubyte.gz"
+download.file(paste0(URL, file_name), "t10k-images-idx3-ubyte.gz")
+gunzip(file_name)
+test <- read_idx(gsub(pattern = "\\.gz", "", file_name))
+test_df <- data.frame(matrix(test, nrow = 10000))
+```
+
+```{r}
+# read train and test labels and combine with pixel data
+file_name <- "train-labels-idx1-ubyte.gz"
+download.file(paste0(URL, file_name), "train-labels-idx1-ubyte.gz")
+gunzip(file_name)
+train_label <- read_idx(gsub(pattern = "\\.gz", "", file_name))
+file_name <- "t10k-labels-idx1-ubyte.gz"
+download.file(paste0(URL, file_name), "t10k-labels-idx1-ubyte.gz")
+gunzip(file_name)
+test_label <- read_idx(gsub(pattern = "\\.gz", "", file_name))
+train_df[train_df!= 0] = 1
+test_df[test_df!= 0] = 1
+train_df["labels"] <- train_label
+test_df["labels"] <- test_label 
+
+```
+
+```{r}
+library(ggplot2)
+label <- seq(0,9)
+distance_mean <- rep(NA,10)
+distance_var <- rep(NA,10)
+digits_distance <- list()
+for(i in 1:10){
+  df <- train_df[train_df['labels']==label[i],]
+  df <- scale(df, scale = F)
+  distance - rowSums(df^2)
+  distance_mean[i] <- mean(distance)
+  distance_var[i] <- var(distance)
+  pic <- ggplot(data.frame(distance), aes(x=distance)) + geom_density()
+  digits_distance <- c(digits_distance, "p"+label[i]. = pic)
+}
+```
+
