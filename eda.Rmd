@@ -1,7 +1,5 @@
 ---
 title: "Exploratory Data Analysis"
-author: "Yilin Li, Hien Nguyen, Lyn Peterson"
-date: "2019/11/18"
 output: github_document
 ---
 
@@ -93,12 +91,12 @@ for(i in 1:10){
 
 ```{r}
 dist_df <- data.frame(x = distance_mean, y = distance_var)
-colnames(dist_df) <- c("distance mean", "distance var")
+colnames(dist_df) <- c("mean", "var")
 rownames(dist_df) <- label
 print(dist_df)
 ```
 
-From the summary table, we can see that digit "1" has the lowest mean distance; this indicates that most people write it similarly. "2" has the highest mean distance, so people tend to write "2" in different ways. We also see that "6" and "9" have the highest distance variance, which suggests these two digits have the most variation in people's writing styles. 
+From the summary table, we can see that digit 1 has the lowest mean distance; this indicates that most people write it similarly. 2 has the highest mean distance, so people tend to write 2 in different ways. We also see that 6 and 9 have the highest distance variance, which suggests these two digits have the most variation in people's writing styles. 
 
 We can take a look at the mean image for each digit. 
 

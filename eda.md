@@ -1,7 +1,5 @@
 Exploratory Data Analysis
 ================
-Yilin Li, Hien Nguyen, Lyn Peterson
-2019/11/18
 
 ### Data description
 
@@ -94,24 +92,24 @@ for(i in 1:10){
 
 ``` r
 dist_df <- data.frame(x = distance_mean, y = distance_var)
-colnames(dist_df) <- c("distance mean", "distance var")
+colnames(dist_df) <- c("mean", "var")
 rownames(dist_df) <- label
 print(dist_df)
 ```
 
-    ##   distance mean distance var
-    ## 0      49.91889     140.5000
-    ## 1      22.47562     107.3414
-    ## 2      50.76020     107.3001
-    ## 3      44.94435     150.5974
-    ## 4      40.87232     130.9288
-    ## 5      47.58101     142.0700
-    ## 6      43.09167     179.6460
-    ## 7      37.47072     157.1436
-    ## 8      45.59575     165.0296
-    ## 9      38.56896     179.6759
+    ##       mean      var
+    ## 0 49.91889 140.5000
+    ## 1 22.47562 107.3414
+    ## 2 50.76020 107.3001
+    ## 3 44.94435 150.5974
+    ## 4 40.87232 130.9288
+    ## 5 47.58101 142.0700
+    ## 6 43.09167 179.6460
+    ## 7 37.47072 157.1436
+    ## 8 45.59575 165.0296
+    ## 9 38.56896 179.6759
 
-From the summary table, we can see that digit "1" has the lowest mean distance; this indicates that most people write it similarly. "2" has the highest mean distance, so people tend to write "2" in different ways. We also see that "6" and "9" have the highest distance variance, which suggests these two digits have the most variation in people's writing styles.
+From the summary table, we can see that digit 1 has the lowest mean distance; this indicates that most people write it similarly. 2 has the highest mean distance, so people tend to write 2 in different ways. We also see that 6 and 9 have the highest distance variance, which suggests these two digits have the most variation in people's writing styles.
 
 We can take a look at the mean image for each digit.
 
