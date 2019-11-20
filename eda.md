@@ -39,11 +39,11 @@ load_label_file <- function(filename) {
     y
 }
 
-train <- load_image_file("train-images-idx3-ubyte")
-test <- load_image_file("t10k-images-idx3-ubyte")
+train <- load_image_file("data/train-images-idx3-ubyte")
+test <- load_image_file("data/t10k-images-idx3-ubyte")
 
-train$y <- load_label_file("train-labels-idx1-ubyte")
-test$y <- load_label_file("t10k-labels-idx1-ubyte")  
+train$y <- load_label_file("data/train-labels-idx1-ubyte")
+test$y <- load_label_file("data/t10k-labels-idx1-ubyte")  
 ```
 
 We can take a look at the first 25 images.
@@ -57,8 +57,6 @@ for (i in 1:25){
 ```
 
 ![](eda_files/figure-markdown_github/unnamed-chunk-1-1.png)
-
-We want to measure the variations in handwriting styles for each digit. First, we performed data normalization on each pixel so all values fall within the (0,1) range. Then we calculated the mean image for each digit. Finally, for each digit, we computed the mean distance and its variance from each training image to its mean form. We plot the distance distribution for each digit and construct a summary table of distance mean and variance.
 
 ``` r
 library(ggplot2)
