@@ -1,21 +1,19 @@
----
-title: "Exploratory Data Analysis"
-author: "Yilin Li, Hien Nguyen, Lyn Peterson"
-date: "2019/11/18"
-output: github_document
----
+Exploratory Data Analysis
+================
+Yilin Li, Hien Nguyen, Lyn Peterson
+2019/11/18
 
 ### Data description
 
-Our data is the MNIST database of handwritten digits, collected from this page http://yann.lecun.com/exdb/mnist/. The digits have been size-normalized and centered in a fixed-size image.
+Our data is the MNIST database of handwritten digits, collected from this page <http://yann.lecun.com/exdb/mnist/>. The digits have been size-normalized and centered in a fixed-size image.
 
 The training set contains 60,000 examples, and the test set 10,000 examples.
 
-Our observations are images. Each image is composed of 28*28 = 748 pixels, where each pixel value ranges from 0-255. We use all 748 pixels as our predictors. $n$ = 70,000; $p$ = 748.
+Our observations are images. Each image is composed of 28\*28 = 748 pixels, where each pixel value ranges from 0-255. We use all 748 pixels as our predictors. *n* = 70,000; *p* = 748.
 
 ### Data exploration
 
-```{r loading-data}
+``` r
 # This part read idx files and store image data into train$x and 
 # test$x in matrix form, store corresponding labels in train$y 
 # and test$y in array form 
@@ -46,12 +44,11 @@ test <- load_image_file("t10k-images-idx3-ubyte")
 
 train$y <- load_label_file("train-labels-idx1-ubyte")
 test$y <- load_label_file("t10k-labels-idx1-ubyte")  
-
 ```
 
-We can take a look at the first 25 images. 
+We can take a look at the first 25 images.
 
-```{r}
+``` r
 par(mfrow=c(5,5))
 par(mar=c(0.1,0.1,0.1,0.1))
 for (i in 1:25){
@@ -59,9 +56,11 @@ for (i in 1:25){
 }
 ```
 
-We want to measure the variations in handwriting styles for each digit. First, we performed data normalization on each pixel so all values fall within the (0,1) range. Then we calculated the mean image for each digit. Finally, for each digit, we computed the mean distance and its variance from each training image to its mean form. We plot the distance distribution for each digit and construct a summary table of distance mean and variance. 
+![](eda_files/figure-markdown_github/unnamed-chunk-1-1.png)
 
-```{r data-preprocessing}
+We want to measure the variations in handwriting styles for each digit. First, we performed data normalization on each pixel so all values fall within the (0,1) range. Then we calculated the mean image for each digit. Finally, for each digit, we computed the mean distance and its variance from each training image to its mean form. We plot the distance distribution for each digit and construct a summary table of distance mean and variance.
+
+``` r
 library(ggplot2)
 
 # normalize pixel values from 0-255 to 0-1 
@@ -93,18 +92,32 @@ for(i in 1:10){
 }
 ```
 
-```{r}
+![](eda_files/figure-markdown_github/data-preprocessing-1.png)
+
+``` r
 dist_df <- data.frame(x = distance_mean, y = distance_var)
 colnames(dist_df) <- c("distance mean", "distance var")
 rownames(dist_df) <- label
 print(dist_df)
 ```
 
-From the summary table, we can see that digit "1" has the lowest mean distance; this indicates that most people write it similarly. "2" has the highest mean distance, so people tend to write "2" in different ways. We also see that "6" and "9" have the highest distance variance, which suggests these two digits have the most variation in people's writing styles. 
+    ##   distance mean distance var
+    ## 0      49.91889     140.5000
+    ## 1      22.47562     107.3414
+    ## 2      50.76020     107.3001
+    ## 3      44.94435     150.5974
+    ## 4      40.87232     130.9288
+    ## 5      47.58101     142.0700
+    ## 6      43.09167     179.6460
+    ## 7      37.47072     157.1436
+    ## 8      45.59575     165.0296
+    ## 9      38.56896     179.6759
 
-We can take a look at the mean image for each digit. 
+From the summary table, we can see that digit "1" has the lowest mean distance; this indicates that most people write it similarly. "2" has the highest mean distance, so people tend to write "2" in different ways. We also see that "6" and "9" have the highest distance variance, which suggests these two digits have the most variation in people's writing styles.
 
-```{r}
+We can take a look at the mean image for each digit.
+
+``` r
 # Display the mean form for each digit
 par(mfrow=c(2,5))
 par(mar=c(0.1,0.1,0.1,0.1))
@@ -113,6 +126,4 @@ for (i in 1:10){
 }
 ```
 
-
-
-
+![](eda_files/figure-markdown_github/unnamed-chunk-3-1.png)
