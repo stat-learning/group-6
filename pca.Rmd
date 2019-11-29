@@ -1,0 +1,247 @@
+---
+title: "Experiment"
+author: "Hien Nguyen"
+date: "11/26/2019"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(MASS)
+library(tree)
+library(gbm)
+```
+
+```{r loading-data}
+# This part read idx files and store image data into train$x and 
+# test$x in matrix form, store corresponding labels in train$y 
+# and test$y in array form 
+load_image_file <- function(filename) {
+   ret = list()
+    f = file(filename,'rb')
+    readBin(f,'integer',n=1,size=4,endian='big')
+    ret$n = readBin(f,'integer',n=1,size=4,endian='big')
+    nrow = readBin(f,'integer',n=1,size=4,endian='big')
+    ncol = readBin(f,'integer',n=1,size=4,endian='big')
+    x = readBin(f,'integer',n=ret$n*nrow*ncol,size=1,signed=F)
+    ret$x = matrix(x, ncol=nrow*ncol, byrow=T)
+    close(f)
+    ret
+}
+
+load_label_file <- function(filename) {
+    f = file(filename,'rb')
+    readBin(f,'integer',n=1,size=4,endian='big')
+    n = readBin(f,'integer',n=1,size=4,endian='big')
+    y = readBin(f,'integer',n=n,size=1,signed=F)
+    close(f)
+    y
+}
+
+train <- load_image_file("data/train-images-idx3-ubyte")
+test <- load_image_file("data/t10k-images-idx3-ubyte")
+
+train$y <- load_label_file("data/train-labels-idx1-ubyte")
+test$y <- load_label_file("data/t10k-labels-idx1-ubyte")  
+
+```
+
+```{r}
+train$x <- train$x/255
+test$x <- test$x/255
+
+train_df <- data.frame(train$y, train$x) %>%
+  rename(label = train.y)
+```
+
+
+```{r}
+pca <- prcomp(train_df[, -1])
+```
+
+
+```{r}
+# Store the first two coordinates and the label in a data frame
+pca_plot <- data.frame(pca_x = pca$x[, "PC1"], pca_y = pca$x[, "PC2"], 
+                       label = as.factor(train_df$label))
+````
+
+```{r}
+# Plot the first two principal components using the true labels as color 
+ggplot(pca_plot[1:250,], aes(x = pca_x, y = pca_y, color = label)) + 
+	ggtitle("PCA of MNIST sample") + 
+	geom_text(aes(label = label)) + 
+	theme(legend.position = "none")
+```
+
+```{r}
+d <- data.frame(PC = 1:784,
+                PVE = pca$sdev^2 / sum(pca$sdev^2))
+ggplot(d, aes(x = PC, y = PVE)) +
+  geom_line() + 
+  geom_point() +
+  theme_bw(base_size = 18)
+```
+
+```{r}
+ggplot(d[1:50,], aes(x = PC, y = PVE)) +
+  geom_line() + 
+  geom_point() +
+  theme_bw(base_size = 18)
+```
+
+We only need 10 PCs to capture 75% of the variance in our dataset.
+
+```{r}
+pca_10 <- prcomp(train_df[, -1], rank. = 10)
+```
+
+```{r}
+train_pca <- data.frame(label = train_df[, 1], pca_10$x)
+
+test_df <- data.frame(test$y, test$x) %>%
+  rename(label = test.y)
+
+test_pca <- predict(pca, newdata = test_df)
+```
+
+
+```{r}
+set.seed(1)
+library(randomForest)
+
+m3 <- randomForest(train_pca[, -1], as.factor(train_pca$label), ntree=500)
+```
+
+
+```{r}
+# select the first 10 principal components
+test_pca_10 <- test_pca[, 1:10]
+
+pred <- predict(m3, test_pca_10, type = "class")
+(conf <- table(pred, test_df$label))
+```
+
+```{r}
+(sum(conf) - sum(diag(conf))) /
+  sum(conf)
+```
+
+Try 
+
+```{r}
+pca_20 <- prcomp(train_df[, -1], rank. = 20)
+```
+
+```{r}
+train_pca_20 <- data.frame(label = train_df[, 1], pca_20$x)
+train_pca_20$label <- as.factor(train_pca_20$label)
+```
+
+```{r}
+set.seed(1)
+
+m4 <- randomForest(train_pca_20[, -1], train_pca_20$label, ntree=500)
+m4
+```
+
+```{r}
+# select the first 20 PCs
+test_pca_20 <- test_pca[, 1:20]
+test_pca_20 <- as.data.frame(test_pca_20)
+
+pred_20 <- predict(m4, test_pca_20, type = "class")
+(conf <- table(pred_20, test_df$label))
+```
+
+```{r}
+(sum(conf) - sum(diag(conf))) / 
+  sum(conf)
+```
+Accuracy is 96.1%.
+
+The pair that is most difficult to predict are 4 and 9.
+
+## Classification Tree
+
+```{r}
+t <- tree(label ~., data = train_pca_20, split = "deviance")
+summary(t)
+```
+
+```{r}
+pred.tree <- predict(t, newdata = test_pca_20, type = "class")
+(conf <- table(pred.tree, test_df$label))
+```
+
+```{r}
+(sum(conf) - sum(diag(conf))) / 
+  sum(conf)
+```
+
+4-9 is still the most difficult pair to predict, followed closely by 5-0, 7-9, 5-3, 5-8.
+
+## Pruning tree
+
+```{r}
+t.cv <- cv.tree(t)
+plot(t.cv$size, t.cv$dev, type = "b", xlab = "n leaves", ylab = "error")
+```
+
+Not a good case for pruning (best n = 13 was already chosen). 
+
+## Bagging tree
+
+```{r}
+set.seed(1)
+
+p <- ncol(train_pca_20)-1
+bag.mnist <- randomForest(label ~., data = train_pca_20,
+                  mtry = p/3, importance = TRUE) 
+bag.mnist
+```
+
+```{r}
+varImpPlot(bag.mnist)
+```
+
+```{r}
+pred.bag <- predict(bag.mnist, newdata = test_pca_20, type = "class")
+(conf <- table(pred.bag, test_df$label))
+```
+
+```{r}
+(sum(conf) - sum(diag(conf))) / 
+  sum(conf)
+```
+
+## Boosting tree
+
+```{r}
+set.seed(1)
+boost.mnist <- gbm(label~., data = train_pca_20, 
+                     distribution = "multinomial",
+                     n.trees = 50, interaction.depth = 1,
+                     shrinkage = 0.1)
+summary(boost.mnist)
+```
+
+```{r}
+pred.boost <- predict(boost.mnist, newdata = test_pca_20, n.trees = 50)
+pred.boost <- apply(pred.boost, 1, which.max)
+
+(conf <- table(pred.boost, test_df$label))
+```
+
+```{r}
+(sum(conf) - sum(diag(conf))) / 
+  sum(conf)
+```
+
+
+
