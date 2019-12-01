@@ -1,10 +1,8 @@
 ---
-title: "Experiment"
-author: "Hien Nguyen"
-date: "11/26/2019"
+title: "Experiment with PCA on the MNIST dataset"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -15,6 +13,8 @@ library(ggplot2)
 library(MASS)
 library(tree)
 library(gbm)
+library(randomForest)
+library(class)
 ```
 
 ```{r loading-data}
@@ -57,19 +57,26 @@ test$x <- test$x/255
 
 train_df <- data.frame(train$y, train$x) %>%
   rename(label = train.y)
+test_df <- data.frame(test$y, test$x) %>%
+  rename(label = test.y)
 ```
 
 
 ```{r}
+# Fit PCA on the training dataset
 pca <- prcomp(train_df[, -1])
 ```
 
+```{r}
+# Fit PCA on the test dataset
+test_pca <- predict(pca, newdata = test_df)
+```
 
 ```{r}
 # Store the first two coordinates and the label in a data frame
 pca_plot <- data.frame(pca_x = pca$x[, "PC1"], pca_y = pca$x[, "PC2"], 
                        label = as.factor(train_df$label))
-````
+```
 
 ```{r}
 # Plot the first two principal components using the true labels as color 
@@ -95,93 +102,58 @@ ggplot(d[1:50,], aes(x = PC, y = PVE)) +
   theme_bw(base_size = 18)
 ```
 
-We only need 10 PCs to capture 75% of the variance in our dataset.
+We only need 20 PCs to capture 90% of the variance in our dataset.
 
 ```{r}
-pca_10 <- prcomp(train_df[, -1], rank. = 10)
+set.seed(1)
+pca <- prcomp(train_df[, -1], rank. = 20)
+
+pca.tr <- data.frame(label = train_df[, 1], pca$x)
+pca.tr$label <- as.factor(pca.tr$label)
 ```
 
 ```{r}
-train_pca <- data.frame(label = train_df[, 1], pca_10$x)
+pca.tst <- test_pca[, 1:20]  # select the first 20 PCs
+pca.tst <- as.data.frame(pca.tst)
 
-test_df <- data.frame(test$y, test$x) %>%
-  rename(label = test.y)
-
-test_pca <- predict(pca, newdata = test_df)
+pca.tst <- pca.tst %>% mutate(label = test_df$label)
 ```
 
 
 ```{r}
 set.seed(1)
-library(randomForest)
 
-m3 <- randomForest(train_pca[, -1], as.factor(train_pca$label), ntree=500)
-```
-
-
-```{r}
-# select the first 10 principal components
-test_pca_10 <- test_pca[, 1:10]
-
-pred <- predict(m3, test_pca_10, type = "class")
-(conf <- table(pred, test_df$label))
+rf <- randomForest(pca.tr[, -1], pca.tr$label, ntree=500)
+rf
 ```
 
 ```{r}
-(sum(conf) - sum(diag(conf))) /
-  sum(conf)
-```
-
-Try 
-
-```{r}
-pca_20 <- prcomp(train_df[, -1], rank. = 20)
+pred.rf <- predict(rf, pca.tst, type = "class")
+(conf.rf <- table(pred.rf, pca.tst$label))
 ```
 
 ```{r}
-train_pca_20 <- data.frame(label = train_df[, 1], pca_20$x)
-train_pca_20$label <- as.factor(train_pca_20$label)
+(sum(conf.rf) - sum(diag(conf.rf))) / 
+  sum(conf.rf)
 ```
 
-```{r}
-set.seed(1)
-
-m4 <- randomForest(train_pca_20[, -1], train_pca_20$label, ntree=500)
-m4
-```
-
-```{r}
-# select the first 20 PCs
-test_pca_20 <- test_pca[, 1:20]
-test_pca_20 <- as.data.frame(test_pca_20)
-
-pred_20 <- predict(m4, test_pca_20, type = "class")
-(conf <- table(pred_20, test_df$label))
-```
-
-```{r}
-(sum(conf) - sum(diag(conf))) / 
-  sum(conf)
-```
-Accuracy is 96.1%.
-
-The pair that is most difficult to predict are 4 and 9.
+The misclassification rate is 4.89%. The pair that is most difficult to predict are 4 and 9.
 
 ## Classification Tree
 
 ```{r}
-t <- tree(label ~., data = train_pca_20, split = "deviance")
+t <- tree(label ~., data = pca.tr, split = "deviance")
 summary(t)
 ```
 
 ```{r}
-pred.tree <- predict(t, newdata = test_pca_20, type = "class")
-(conf <- table(pred.tree, test_df$label))
+pred.tree <- predict(t, newdata = pca.tst, type = "class")
+(conf.tree <- table(pred.tree, test_df$label))
 ```
 
 ```{r}
-(sum(conf) - sum(diag(conf))) / 
-  sum(conf)
+(sum(conf.tree) - sum(diag(conf.tree))) / 
+  sum(conf.tree)
 ```
 
 4-9 is still the most difficult pair to predict, followed closely by 5-0, 7-9, 5-3, 5-8.
@@ -200,31 +172,32 @@ Not a good case for pruning (best n = 13 was already chosen).
 ```{r}
 set.seed(1)
 
-p <- ncol(train_pca_20)-1
-bag.mnist <- randomForest(label ~., data = train_pca_20,
+p <- ncol(pca.tr)-1
+rf.bag <- randomForest(label ~., data = pca.tr,
                   mtry = p/3, importance = TRUE) 
-bag.mnist
+rf.bag
 ```
 
 ```{r}
-varImpPlot(bag.mnist)
+varImpPlot(rf.bag)
 ```
 
 ```{r}
-pred.bag <- predict(bag.mnist, newdata = test_pca_20, type = "class")
-(conf <- table(pred.bag, test_df$label))
+pred.bag <- predict(rf.bag, newdata = pca.tst, type = "class")
+(conf.bag <- table(pred.bag, pca.tst$label))
 ```
 
 ```{r}
-(sum(conf) - sum(diag(conf))) / 
-  sum(conf)
+(sum(conf.bag) - sum(diag(conf.bag))) / 
+  sum(conf.bag)
 ```
+The misclassification rate is 5.15%.
 
 ## Boosting tree
 
 ```{r}
 set.seed(1)
-boost.mnist <- gbm(label~., data = train_pca_20, 
+boost.mnist <- gbm(label~., data = pca.tr, 
                      distribution = "multinomial",
                      n.trees = 50, interaction.depth = 1,
                      shrinkage = 0.1)
@@ -232,16 +205,122 @@ summary(boost.mnist)
 ```
 
 ```{r}
-pred.boost <- predict(boost.mnist, newdata = test_pca_20, n.trees = 50)
+pred.boost <- predict(boost.mnist, newdata = pca.tst, n.trees = 50)
 pred.boost <- apply(pred.boost, 1, which.max)
 
-(conf <- table(pred.boost, test_df$label))
+(conf.boost <- table(pred.boost, pca.tst$label))
 ```
 
 ```{r}
-(sum(conf) - sum(diag(conf))) / 
-  sum(conf)
+(sum(conf.boost) - sum(diag(conf.boost))) / 
+  sum(conf.boost)
 ```
 
+
+
+## Logistic Regression 
+
+```{r}
+# create dummy variables for the digits. 
+
+pca.log.tr <- pca.tr %>% 
+  mutate(iszero = as.numeric(label == 0),
+         isone = as.numeric(label == 1),
+         istwo = as.numeric(label == 2),
+         isthree = as.numeric(label == 3),
+         isfour = as.numeric(label == 4),
+         isfive = as.numeric(label == 5),
+         issix = as.numeric(label == 6),
+         isseven = as.numeric(label == 7),
+         iseight = as.numeric(label == 8),
+         isnine  = as.numeric(label == 9))
+
+pca.log.tst <- pca.tst %>% 
+  mutate(iszero = as.numeric(label == 0),
+         isone = as.numeric(label == 1),
+         istwo = as.numeric(label == 2),
+         isthree = as.numeric(label == 3),
+         isfour = as.numeric(label == 4),
+         isfive = as.numeric(label == 5),
+         issix = as.numeric(label == 6),
+         isseven = as.numeric(label == 7),
+         iseight = as.numeric(label == 8),
+         isnine  = as.numeric(label == 9))
+```
+
+```{r include=FALSE, echo=FALSE}
+train.zero <- pca.log.tr %>% dplyr::select(-c(isone, istwo, isthree, isfour, isfive, issix, isseven, iseight, isnine, label))
+train.one <- pca.log.tr %>% dplyr::select(-c(iszero, istwo, isthree, isfour, isfive, issix, isseven, iseight, isnine, label))
+train.two <- pca.log.tr %>% dplyr::select(-c(iszero, isone, isthree, isfour, isfive, issix, isseven, iseight, isnine, label))
+train.three <- pca.log.tr %>% dplyr::select(-c(iszero, isone, istwo, isfour, isfive, issix, isseven, iseight, isnine, label))
+train.four <- pca.log.tr %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfive, issix, isseven, iseight, isnine, label))
+train.five <- pca.log.tr %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfour, issix, isseven, iseight, isnine, label))
+train.six <- pca.log.tr %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfour, isfive, isseven, iseight, isnine, label))
+train.seven <- pca.log.tr %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfour, isfive, issix, iseight, isnine, label))
+train.eight <- pca.log.tr %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfour, isfive, issix, isseven, isnine, label))
+train.nine <- pca.log.tr %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfour, isfive, issix, isseven, iseight, label))
+```
+
+```{r include=FALSE, echo=FALSE}
+test.zero <- pca.log.tst %>% dplyr::select(-c(isone, istwo, isthree, isfour, isfive, issix, isseven, iseight, isnine, label))
+test.one <- pca.log.tst %>% dplyr::select(-c(iszero, istwo, isthree, isfour, isfive, issix, isseven, iseight, isnine, label))
+test.two <- pca.log.tst %>% dplyr::select(-c(iszero, isone, isthree, isfour, isfive, issix, isseven, iseight, isnine, label))
+test.three <- pca.log.tst %>% dplyr::select(-c(iszero, isone, istwo, isfour, isfive, issix, isseven, iseight, isnine, label))
+test.four <- pca.log.tst %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfive, issix, isseven, iseight, isnine, label))
+test.five <- pca.log.tst %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfour, issix, isseven, iseight, isnine, label))
+test.six <- pca.log.tst %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfour, isfive, isseven, iseight, isnine, label))
+test.seven <- pca.log.tst %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfour, isfive, issix, iseight, isnine, label))
+test.eight <- pca.log.tst %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfour, isfive, issix, isseven, isnine, label))
+test.nine <- pca.log.tst %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfour, isfive, issix, isseven, iseight, label))
+```
+
+
+```{r echo=FALSE}
+set.seed(1)
+
+prob.zero <- glm(iszero ~ ., data = train.zero, family = "binomial")
+prob.one <- glm(isone ~ ., data = train.one, family = "binomial")
+prob.two <- glm(istwo ~ ., data = train.two, family = "binomial")
+prob.three <- glm(isthree ~ ., data = train.three, family = "binomial")
+prob.four <- glm(isfour ~ ., data = train.four, family = "binomial")
+prob.five <- glm(isfive ~ ., data = train.five, family = "binomial")
+prob.six <- glm(issix ~ ., data = train.six, family = "binomial")
+prob.seven <- glm(isseven ~ ., data = train.seven, family = "binomial")
+prob.eight <- glm(iseight ~ ., data = train.eight, family = "binomial")
+prob.nine <- glm(isnine ~ ., data = train.nine, family = "binomial")
+```
+
+
+```{r}
+ProbabilityOfEachValue <- data.frame(predict(prob.zero, test.zero),
+                                     predict(prob.one, test.one),
+                                     predict(prob.two, test.two),
+                                     predict(prob.three, test.three),
+                                     predict(prob.four, test.four),
+                                     predict(prob.five, test.five),
+                                     predict(prob.six, test.six),
+                                     predict(prob.seven, test.seven),
+                                     predict(prob.eight, test.eight),
+                                     predict(prob.nine, test.nine))
+```
+
+
+```{r}
+# Find the index with the highest probability predicted by the models for each class and store it in a list
+
+Label <- rep(NA, nrow(ProbabilityOfEachValue))
+for (i in seq(nrow(ProbabilityOfEachValue)))
+{
+  Label[i] <- which.max(ProbabilityOfEachValue[i,])
+}
+(conf.log <- table(Label, pca.tst$label))
+```
+
+
+```{r}
+(sum(conf.log) - sum(diag(conf.log))) / sum(conf.log)
+```
+
+The misclassification rate is 13.15%. 
 
 
