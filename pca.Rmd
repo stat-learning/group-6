@@ -343,4 +343,4 @@ table(svm.pred, pca.tst[,21])
 knn.MSE <- 1- mean(svm.pred == pca.tst[,21])
 knn.MSE
 ```
-Clearly, with KNN method, the misclassifcation rate is 2.17%. 4-9 pair is the hardest one to predict.
+Clearly, with SVM method, the misclassifcation rate is 2.17%. 4-9 pair is the hardest one to predict.
