@@ -115,9 +115,59 @@ p1 <- ggplot(q, aes(x = PC1, y = PC2)) +geom_point(size = 1)
 p1
 
 logistic
-knn
-tree, rf, brf
-sv
+
+library(dplyr)
+train_df <- data.frame(train$y, train$x) %>%
+  rename(label = train.y)
+test_df <- data.frame(test$y, test$x) %>%
+  rename(label = test.y)
+
+library(nnet)
+lm <- multinom(label ~ ., data = train_df)
+summary(lm)
+z <- summary(lm)$coefficients/summary(lm)$standard.errors
+z
+p <- (1 - pnorm(abs(z), 0, 1)) * 2
+p
+
+library(class)
+trainCl <- factor(0:9)
+testCl <- factor(test_df[label, ])
+knn(train = train_df$label, test = test_df$label, trainCl, k = 6)
+###My knn gives an error that I can't figure out. I think I may be writing the cl wrong which is supposed to be the classifications. It says the length is wrong
+
+library(tree)
+t1 <- tree(label ~ ., 
+           data = train_df, split = "deviance")
+t1
+plot(t1)
+text(t1, pretty = 0)
+set.seed(40)
+t1cv <- cv.tree(t1)
+t1cv
+
+
+t1cv$size[which.min(t1cv$dev)]
+t1prune <- prune.tree(t1, best = 13)
+plot(t1prune)
+text(t1prune, pretty = 0)
+
+library(randomForest)
+rf1 <- randomForest(label ~ .,            data = train_df, mtry = 4) 
+rf2 <- randomForest(label ~ .,            data = train_df, mtry = 1) 
+
+pred1 = predict(rf1, newdata = test_df)
+mean((pred1 - test_df$label)^2)
+
+pred2 = predict(rf2, newdata = test_df)
+mean((pred2 - test_df$label)^2)
+
+set.seed(1)
+ library(gbm)
+boost = gbm(label ~., 
+            data=train_df, distribution = "gaussian", n.trees=50, interaction.depth = 1, shrinkage = 0.1)
+summary(boost)
+
 ```
 
 
