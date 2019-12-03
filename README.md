@@ -10,5 +10,5 @@ The MNIST database of handwritten digits is a classic dataset for machine learni
 1. **Pre-proposal**: Sunday 11/3 
 2. **Group proposal**: Thursday 11/7 
 3. **Exploratory Data Analysis**: Wednesday 11/20
-5. **Technical Report**: Monday 12/2 
-6. **Final Presentations**: Wednesday 12/4 and Monday 12/9 in class
+4. **Final Presentation**: Wednesday 12/4 in class
+5. **Technical Report**: Wednesday 12/11 
