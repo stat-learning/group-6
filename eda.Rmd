@@ -108,40 +108,26 @@ for (i in 1:10){
   image(matrix(mean_digits[i,],28)[,28:1]*255)
 }
 
-p <- prcomp(train$x)
-library(tidyverse)
-q <- as.data.frame(p$x)
-p1 <- ggplot(q, aes(x = PC1, y = PC2)) +geom_point(size = 1)
-p1
-
-logistic
-
 library(dplyr)
 train_df <- data.frame(train$y, train$x) %>%
   rename(label = train.y)
 test_df <- data.frame(test$y, test$x) %>%
   rename(label = test.y)
 
-library(nnet)
-lm <- multinom(label ~ ., data = train_df)
-summary(lm)
-z <- summary(lm)$coefficients/summary(lm)$standard.errors
-z
-p <- (1 - pnorm(abs(z), 0, 1)) * 2
-p
 
-library(class)
-trainCl <- factor(0:9)
-testCl <- factor(test_df[label, ])
-knn(train = train_df$label, test = test_df$label, trainCl, k = 6)
-###My knn gives an error that I can't figure out. I think I may be writing the cl wrong which is supposed to be the classifications. It says the length is wrong
-
+```
+###Classification Tree
+```{r}
 library(tree)
-t1 <- tree(label ~ ., 
+t1 <- tree(as.factor(label) ~ ., 
            data = train_df, split = "deviance")
 t1
 plot(t1)
 text(t1, pretty = 0)
+
+predt1 = predict(t1, newdata = test_df, type = "class")
+mean((predt1!=test_df$label))
+
 set.seed(40)
 t1cv <- cv.tree(t1)
 t1cv
@@ -152,21 +138,31 @@ t1prune <- prune.tree(t1, best = 13)
 plot(t1prune)
 text(t1prune, pretty = 0)
 
+predt1p = predict(t1prune, newdata = test_df, type = "class")
+mean((predt1p!=test_df$label))
+```
+### Random Forest
+```{r}
 library(randomForest)
-rf1 <- randomForest(label ~ .,            data = train_df, mtry = 4) 
-rf2 <- randomForest(label ~ .,            data = train_df, mtry = 1) 
+rf1 <- randomForest(as.factor(label) ~ .,            data = train_df, mtry = 4) 
+rf2 <- randomForest(as.factor(label) ~ .,            data = train_df, mtry = 1) 
 
-pred1 = predict(rf1, newdata = test_df)
-mean((pred1 - test_df$label)^2)
+predrf1 = predict(rf1, newdata = test_df, type = "class")
+mean((predrf1!=test_df$label))
 
-pred2 = predict(rf2, newdata = test_df)
-mean((pred2 - test_df$label)^2)
-
+predrf2 = predict(rf2, newdata = test_df, type = "class")
+mean((predrf2!=test_df$label))
+```
+###Boosted Random Forest
+```{r}
 set.seed(1)
  library(gbm)
-boost = gbm(label ~., 
+boost = gbm(as.factor(label) ~., 
             data=train_df, distribution = "gaussian", n.trees=50, interaction.depth = 1, shrinkage = 0.1)
 summary(boost)
+
+predb = predict(boost, newdata = test_df, type = "response", n.trees=50)
+mean((predb!=test_df$label))
 
 ```
 
