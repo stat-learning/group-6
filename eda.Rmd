@@ -114,55 +114,96 @@ train_df <- data.frame(train$y, train$x) %>%
 test_df <- data.frame(test$y, test$x) %>%
   rename(label = test.y)
 
+trainp <- sample(1:nrow(train_df), nrow(train_df) * .17)
+  train = train_df[trainp,]
+testp <- sample(1:nrow(test_df), nrow(test_df) * .2)
+  test = test_df[testp,]
+
 
 ```
 ###Classification Tree
-```{r}
+```{r cache=TRUE}
 library(tree)
 t1 <- tree(as.factor(label) ~ ., 
-           data = train_df, split = "deviance")
+           data = train, split = "deviance")
 t1
 plot(t1)
 text(t1, pretty = 0)
 
-predt1 = predict(t1, newdata = test_df, type = "class")
-mean((predt1!=test_df$label))
+predt1 = predict(t1, newdata = train, type = "class")
+mean((predt1!=train$label))
+
+conf_t1 <- table(predt1, train$label)
+conf_t1
 
 set.seed(40)
 t1cv <- cv.tree(t1)
 t1cv
-
+plot(t1cv$size, t1cv$dev, type = "b", xlab = "n leaves", ylab = "error")
 
 t1cv$size[which.min(t1cv$dev)]
 t1prune <- prune.tree(t1, best = 13)
+t1prune
 plot(t1prune)
 text(t1prune, pretty = 0)
 
-predt1p = predict(t1prune, newdata = test_df, type = "class")
-mean((predt1p!=test_df$label))
+predt1p = predict(t1prune, newdata = train, type = "class")
+mean((predt1p!=train$label))
+
+conf_t1p <- table(predt1p, train$label)
+conf_t1p
 ```
 ### Random Forest
-```{r}
+```{r cache=TRUE}
 library(randomForest)
-rf1 <- randomForest(as.factor(label) ~ .,            data = train_df, mtry = 4) 
-rf2 <- randomForest(as.factor(label) ~ .,            data = train_df, mtry = 1) 
 
-predrf1 = predict(rf1, newdata = test_df, type = "class")
-mean((predrf1!=test_df$label))
+rf <- randomForest(as.factor(label) ~ .,            data = train, mtry = 262, importance = TRUE) 
 
-predrf2 = predict(rf2, newdata = test_df, type = "class")
-mean((predrf2!=test_df$label))
+plot(rf)
+
+pred.rf <- predict(rf, test, type = "class")
+conf.rf <- table(pred.rf, test$label)
+
+(sum(conf.rf) - sum(diag(conf.rf))) / sum(conf.rf)
+
+
+varImpPlot(rf)
+
+```
+### Bagging
+```{r cache=TRUE}
+
+rfb <- randomForest(as.factor(label) ~ .,            data = train, mtry = 784, importance = TRUE) 
+
+plot(rfb)
+
+pred.rfb <- predict(rfb, test, type = "class")
+conf.rfb <- table(pred.rfb, test$label)
+conf.rfb
+
+(sum(conf.rfb) - sum(diag(conf.rfb))) / sum(conf.rfb)
+
+
+varImpPlot(rfb)
+
 ```
 ###Boosted Random Forest
-```{r}
+```{r cache=TRUE}
 set.seed(1)
  library(gbm)
 boost = gbm(as.factor(label) ~., 
-            data=train_df, distribution = "gaussian", n.trees=50, interaction.depth = 1, shrinkage = 0.1)
+            data=train, distribution = "multinomial", n.trees=50, interaction.depth = 1, shrinkage = 0.1)
 summary(boost)
 
-predb = predict(boost, newdata = test_df, type = "response", n.trees=50)
-mean((predb!=test_df$label))
+pred.boost <- predict(boost, newdata = test, n.trees = 50)
+pred.boost <- apply(pred.boost, 1, which.max)
+
+
+conf_boost <- table(pred.boost, test$label)
+conf_boost
+(sum(conf_boost) - sum(diag(conf_boost))) / sum(conf_boost)
+
+
 
 ```
 
