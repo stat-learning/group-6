@@ -263,8 +263,7 @@ The misclassification rate is 9.81. 4-9 is still the most difficult pair to pred
 
 **Original Dataset**
 
-
-```{r cache=TRUE}
+```{r warning=FALSE, message=FALSE, cache=TRUE}
 boost.og.cv <- gbm(label~., data = train_df, 
                 distribution = "multinomial",
                 n.trees = 500, 
