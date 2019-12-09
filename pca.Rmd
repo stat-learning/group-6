@@ -77,10 +77,15 @@ pca_plot <- data.frame(PC1 = pca$x[, "PC1"], PC2 = pca$x[, "PC2"],
                        label = as.factor(train_df$label))
 
 # Plot the first two principal components using the true labels as color 
-ggplot(pca_plot[1:250,], aes(x = PC1, y = PC2, color = label)) + 
+g <- ggplot(pca_plot[1:250,], aes(x = PC1, y = PC2, color = label)) + 
 	ggtitle("PCA of MNIST sample") + 
 	geom_text(aes(label = label)) + 
 	theme(legend.position = "none")
+```
+
+```{r}
+g + geom_vline(xintercept = -2.4, col = "lightblue", linetype="dashed") +
+  geom_hline(yintercept = -.7, col = "tan", linetype="dashed")
 ```
 
 ```{r scree-plot}
@@ -115,12 +120,14 @@ pca.tst$label <- as.factor(pca.tst$label)
 
 set.seed(1)
 
-rf <- randomForest(pca.tr[, -1], pca.tr$label, ntree=500)
+rf <- randomForest(pca.tr[, -1], pca.tr$label, ntree=500, importance = TRUE)
 rf
 ```
 
 ```{r rf-plot, fig.align="center"}
+par(mfrow = c(1,2))
 varImpPlot(rf)
+plot(rf)
 ```
 
 ```{r rf-pred}
@@ -142,7 +149,7 @@ t <- tree(label ~., data = pca.tr, split = "deviance")
 summary(t)
 ```
 
-```{r tree-plot, fig.align="center", fig.width=12, fig.height=8}
+```{r tree-plot, fig.align="center", fig.width=10, fig.height=6}
 plot(t)
 text(t, pretty = 0)
 ```
@@ -206,9 +213,10 @@ boost.mnist <- gbm(label~., data = pca.tr,
 summary(boost.mnist)
 ```
 
+
 ```{r boosted-pred}
 pred.boost <- predict(boost.mnist, newdata = pca.tst, n.trees = 50)
-pred.boost <- apply(pred.boost, 1, which.max)
+pred.boost <- apply(pred.boost, 1, which.max) -1
 
 (conf.boost <- table(pred.boost, pca.tst$label))
 ```
@@ -218,6 +226,73 @@ pred.boost <- apply(pred.boost, 1, which.max)
   sum(conf.boost)
 ```
 
+###Using 5-fold CV
+
+**PCA Dataset**
+
+```{r cache=TRUE}
+boost.pca.cv <- gbm(label~., data = pca.tr, 
+                distribution = "multinomial",
+                n.trees = 500, 
+                interaction.depth = 1,
+                shrinkage = 0.1,
+                cv.folds = 5
+                )
+summary(boost.pca.cv)
+```
+
+```{r}
+print(boost.pca.cv)
+```
+The best number of trees chosen by the boosted model using 5-fold CV on the PCA dataset is 411.
+
+```{r}
+pred.boost.cv <- predict(boost.pca.cv, newdata = pca.tst, n.trees = 500)
+pred.boost.cv <- apply(pred.boost.cv, 1, which.max) -1
+
+(conf.boost <- table(pred.boost.cv, pca.tst$label))
+```
+
+```{r}
+(sum(conf.boost) - sum(diag(conf.boost))) / 
+  sum(conf.boost)
+```
+
+The misclassification rate is 9.81. 4-9 is still the most difficult pair to predict.
+
+
+**Original Dataset**
+
+
+```{r cache=TRUE}
+boost.og.cv <- gbm(label~., data = train_df, 
+                distribution = "multinomial",
+                n.trees = 500, 
+                interaction.depth = 1,
+                shrinkage = 0.1,
+                cv.folds = 5)
+summary(boost.og.cv)
+```
+
+```{r}
+print(boost.og.cv)
+```
+
+The best number of trees chosen by the boosted model using 5-fold CV on the PCA dataset is 454.
+
+```{r}
+pred.boost.og.cv <- predict(boost.og.cv, newdata = test_df, n.trees=500)
+pred.boost.og.cv <- apply(pred.boost.og.cv, 1, which.max) -1
+
+(conf.boost <- table(pred.boost.og.cv, test_df$label))
+```
+
+```{r}
+(sum(conf.boost) - sum(diag(conf.boost))) / 
+  sum(conf.boost)
+```
+
+The misclassification rate is 8.38. 4-9 is still the most difficult pair to predict.
 
 
 ## Logistic Regression 
@@ -311,7 +386,7 @@ ProbabilityOfEachValue <- data.frame(predict(prob.zero, test.zero),
 Label <- rep(NA, nrow(ProbabilityOfEachValue))
 for (i in seq(nrow(ProbabilityOfEachValue)))
 {
-  Label[i] <- which.max(ProbabilityOfEachValue[i,])
+  Label[i] <- which.max(ProbabilityOfEachValue[i,]) - 1
 }
 (conf.log <- table(Label, pca.tst$label))
 ```
