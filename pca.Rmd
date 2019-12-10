@@ -16,9 +16,15 @@ library(gbm)
 library(randomForest)
 library(class)
 library(e1071)  
+library(tidyverse)
+library(caret)
+library(nnet)
+library(glmnet)
+library(doParallel)
+library(rpart)
 ```
 
-```{r loading-data}
+```{r cache=TRUE}
 # This part read idx files and store image data into train$x and 
 # test$x in matrix form, store corresponding labels in train$y 
 # and test$y in array form 
@@ -52,7 +58,7 @@ test$y <- load_label_file("data/t10k-labels-idx1-ubyte")
 
 ```
 
-```{r}
+```{r cache=TRUE}
 train$x <- train$x/255
 test$x <- test$x/255
 
@@ -60,15 +66,18 @@ train_df <- data.frame(train$y, train$x) %>%
   rename(label = train.y)
 test_df <- data.frame(test$y, test$x) %>%
   rename(label = test.y)
+
+train_df$label <- as.factor(train_df$label)
+test_df$label <- as.factor(test_df$label)
 ```
 
 
-```{r}
+```{r cache=TRUE}
 # Fit PCA on the training dataset
 pca <- prcomp(train_df[, -1])
 ```
 
-```{r}
+```{r cache=TRUE}
 # Fit PCA on the test dataset
 test_pca <- predict(pca, newdata = test_df)
 ```
@@ -105,7 +114,7 @@ ggplot(d[1:50,], aes(x = PC, y = PVE)) +
 
 We only need 20 PCs to capture 90% of the variance in our dataset.
 
-```{r}
+```{r cache=TRUE}
 set.seed(1)
 pca <- prcomp(train_df[, -1], rank. = 20)
 
@@ -113,7 +122,7 @@ pca.tr <- data.frame(label = train_df[, 1], pca$x)
 pca.tr$label <- as.factor(pca.tr$label)
 ```
 
-```{r}
+```{r cache=TRUE}
 pca.tst <- test_pca[, 1:20]  # select the first 20 PCs
 pca.tst <- as.data.frame(pca.tst)
 
@@ -143,15 +152,23 @@ The misclassification rate is 4.89%. The pair that is most difficult to predict 
 ## Classification Tree
 
 ```{r}
-t <- tree(label ~., data = pca.tr, split = "deviance")
+t <- rpart(label~., data=train_df, method = "class")
 summary(t)
 ```
 
-```{r}
-pred.tree <- predict(t, newdata = pca.tst, type = "class")
-(conf.tree <- table(pred.tree, test_df$label))
+```{r fig.align="center", fig.width=12, fig.height=8}
+plot(t)
+text(t, pretty = 0)
 ```
 
+```{r}
+pred.tree <- predict(t, newdata = test_df, type = "class")
+(conf.tree <- table(pred.tree, test_df$label))
+```
+```{r}
+pred.tree <- predict(t.pruned, newdata = test_df, type = "class")
+(conf.tree <- table(pred.tree, test_df$label))
+```
 ```{r}
 (sum(conf.tree) - sum(diag(conf.tree))) / 
   sum(conf.tree)
@@ -160,6 +177,9 @@ pred.tree <- predict(t, newdata = pca.tst, type = "class")
 4-9 is still the most difficult pair to predict, followed closely by 5-0, 7-9, 5-3, 5-8.
 
 ## Pruning tree
+```{r}
+t.pruned <- prune(t,  t$cptable[which.min(t$cptable[,"xerror"]),"CP"])
+```
 
 ```{r}
 t.cv <- cv.tree(t)
@@ -218,129 +238,140 @@ pred.boost <- apply(pred.boost, 1, which.max)
 ```
 
 
-
 ## Logistic Regression 
-
 ```{r}
-# create dummy variables for the digits. 
-
-pca.log.tr <- pca.tr %>% 
-  mutate(iszero = as.numeric(label == 0),
-         isone = as.numeric(label == 1),
-         istwo = as.numeric(label == 2),
-         isthree = as.numeric(label == 3),
-         isfour = as.numeric(label == 4),
-         isfive = as.numeric(label == 5),
-         issix = as.numeric(label == 6),
-         isseven = as.numeric(label == 7),
-         iseight = as.numeric(label == 8),
-         isnine  = as.numeric(label == 9))
-
-pca.log.tst <- pca.tst %>% 
-  mutate(iszero = as.numeric(label == 0),
-         isone = as.numeric(label == 1),
-         istwo = as.numeric(label == 2),
-         isthree = as.numeric(label == 3),
-         isfour = as.numeric(label == 4),
-         isfive = as.numeric(label == 5),
-         issix = as.numeric(label == 6),
-         isseven = as.numeric(label == 7),
-         iseight = as.numeric(label == 8),
-         isnine  = as.numeric(label == 9))
+lambdas <- seq(2,0,length = 20)
+registerDoParallel()
+train_df
 ```
-
-```{r include=FALSE, echo=FALSE}
-train.zero <- pca.log.tr %>% dplyr::select(-c(isone, istwo, isthree, isfour, isfive, issix, isseven, iseight, isnine, label))
-train.one <- pca.log.tr %>% dplyr::select(-c(iszero, istwo, isthree, isfour, isfive, issix, isseven, iseight, isnine, label))
-train.two <- pca.log.tr %>% dplyr::select(-c(iszero, isone, isthree, isfour, isfive, issix, isseven, iseight, isnine, label))
-train.three <- pca.log.tr %>% dplyr::select(-c(iszero, isone, istwo, isfour, isfive, issix, isseven, iseight, isnine, label))
-train.four <- pca.log.tr %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfive, issix, isseven, iseight, isnine, label))
-train.five <- pca.log.tr %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfour, issix, isseven, iseight, isnine, label))
-train.six <- pca.log.tr %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfour, isfive, isseven, iseight, isnine, label))
-train.seven <- pca.log.tr %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfour, isfive, issix, iseight, isnine, label))
-train.eight <- pca.log.tr %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfour, isfive, issix, isseven, isnine, label))
-train.nine <- pca.log.tr %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfour, isfive, issix, isseven, iseight, label))
+```{r, cache=TRUE}
+# basic logistic regression without penalization 
+raw_log <- multinom(label~., data=train_df, MaxNWts = 10000)
+pca_log <- multinom(label~., data=pca.tr)
 ```
-
-```{r include=FALSE, echo=FALSE}
-test.zero <- pca.log.tst %>% dplyr::select(-c(isone, istwo, isthree, isfour, isfive, issix, isseven, iseight, isnine, label))
-test.one <- pca.log.tst %>% dplyr::select(-c(iszero, istwo, isthree, isfour, isfive, issix, isseven, iseight, isnine, label))
-test.two <- pca.log.tst %>% dplyr::select(-c(iszero, isone, isthree, isfour, isfive, issix, isseven, iseight, isnine, label))
-test.three <- pca.log.tst %>% dplyr::select(-c(iszero, isone, istwo, isfour, isfive, issix, isseven, iseight, isnine, label))
-test.four <- pca.log.tst %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfive, issix, isseven, iseight, isnine, label))
-test.five <- pca.log.tst %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfour, issix, isseven, iseight, isnine, label))
-test.six <- pca.log.tst %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfour, isfive, isseven, iseight, isnine, label))
-test.seven <- pca.log.tst %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfour, isfive, issix, iseight, isnine, label))
-test.eight <- pca.log.tst %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfour, isfive, issix, isseven, isnine, label))
-test.nine <- pca.log.tst %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfour, isfive, issix, isseven, iseight, label))
-```
-
-
-```{r echo=FALSE}
-set.seed(1)
-
-prob.zero <- glm(iszero ~ ., data = train.zero, family = "binomial")
-prob.one <- glm(isone ~ ., data = train.one, family = "binomial")
-prob.two <- glm(istwo ~ ., data = train.two, family = "binomial")
-prob.three <- glm(isthree ~ ., data = train.three, family = "binomial")
-prob.four <- glm(isfour ~ ., data = train.four, family = "binomial")
-prob.five <- glm(isfive ~ ., data = train.five, family = "binomial")
-prob.six <- glm(issix ~ ., data = train.six, family = "binomial")
-prob.seven <- glm(isseven ~ ., data = train.seven, family = "binomial")
-prob.eight <- glm(iseight ~ ., data = train.eight, family = "binomial")
-prob.nine <- glm(isnine ~ ., data = train.nine, family = "binomial")
-```
-
-
 ```{r}
-ProbabilityOfEachValue <- data.frame(predict(prob.zero, test.zero),
-                                     predict(prob.one, test.one),
-                                     predict(prob.two, test.two),
-                                     predict(prob.three, test.three),
-                                     predict(prob.four, test.four),
-                                     predict(prob.five, test.five),
-                                     predict(prob.six, test.six),
-                                     predict(prob.seven, test.seven),
-                                     predict(prob.eight, test.eight),
-                                     predict(prob.nine, test.nine))
+raw_log_pred <- predict(raw_log, test_df, type="class")
+pca_log_pred <- predict(pca_log, pca.tst, type="class")
+raw_log_MSE <- mean(raw_log_pred!=test$y)
+pca_log_MSE <- mean(pca_log_pred!=pca.tst[,21])
 ```
 
 
-```{r}
-# Find the index with the highest probability predicted by the models for each class and store it in a list
-
-Label <- rep(NA, nrow(ProbabilityOfEachValue))
-for (i in seq(nrow(ProbabilityOfEachValue)))
-{
-  Label[i] <- which.max(ProbabilityOfEachValue[i,])
+```{r, cache=TRUE}
+# Ridge and Lasso for raw dataset
+raw_log_ridge <- cv.glmnet(train$x, train$y, family = "multinomial", parallel= TRUE, alpha = 0)
+raw_log_lasso <- cv.glmnet(train$x, train$y, family = "multinomial", parallel= TRUE, alpha = 1)
+```
+```{r, cache=TRUE}
+plot(raw_log_ridge)
+plot(raw_log_lasso)
+raw_ridge_MSE = rep(NA,length = length(raw_log_ridge$lambda))
+for (i in 1:length(raw_log_ridge$lambda)){
+  p = predict(raw_log_ridge, s = raw_log_ridge$lambda[i], newx = test$x, type = "class")
+  raw_ridge_MSE[i] =  mean(p != test$y)
 }
-(conf.log <- table(Label, pca.tst$label))
+raw_ridge_MSE= min(raw_ridge_MSE)
+raw_lasso_MSE = rep(NA,length = length(raw_log_lasso$lambda))
+for (i in 1:length(raw_log_lasso$lambda)){
+  p = predict(raw_log_lasso, s = raw_log_lasso$lambda[i], newx = test$x, type = "class")
+  raw_lasso_MSE[i] =  mean(p != test$y)
+}
+raw_lasso_MSE= min(raw_lasso_MSE)
+```
+
+
+
+```{r cache=TRUE}
+# Ridge and Lasso for pca dataset
+pca_log_ridge <- cv.glmnet(as.matrix(pca.tr[,-1]), pca.tr[,1], family = "multinomial", parallel= TRUE, alpha = 0)
+pca_log_lasso <- cv.glmnet(as.matrix(pca.tr[,-1]), pca.tr[,1], family = "multinomial", parallel= TRUE, alpha = 1)
+```
+```{r, cache=TRUE}
+plot(pca_log_ridge)
+plot(pca_log_lasso)
+pca_ridge_MSE = rep(NA,length = length(pca_log_ridge$lambda))
+for (i in 1:length(pca_log_ridge$lambda)){
+  p = predict(pca_log_ridge, s = pca_log_ridge$lambda[i], newx = as.matrix(pca.tst[,-21]), type = "class")
+  pca_ridge_MSE[i] =  mean(p != pca.tst[,21])
+}
+pca_ridge_MSE= min(pca_ridge_MSE)
+
+pca_lasso_MSE = rep(NA,length = length(pca_log_lasso$lambda))
+for (i in 1:length(pca_log_lasso$lambda)){
+  p = predict(pca_log_lasso, s = pca_log_lasso$lambda[i], newx = as.matrix(pca.tst[,-21]), type = "class")
+  pca_lasso_MSE[i] =  mean(p != pca.tst[,21])
+}
+pca_lasso_MSE= min(pca_lasso_MSE)
+```
+
+```{r}
+par(mfrow=c(2,2))
+par(mar=c(0.1,0.1,0.1,0.1))
+plot(raw_log_lasso)
+plot(raw_log_ridge)
+plot(pca_log_lasso)
+plot(pca_log_ridge)
 ```
 
 
 ```{r}
-(sum(conf.log) - sum(diag(conf.log))) / sum(conf.log)
+# Summary of MSEs
+c(raw_log_MSE, raw_ridge_MSE, raw_lasso_MSE)
+c(pca_log_MSE, pca_ridge_MSE, pca_lasso_MSE)
 ```
 
-The misclassification rate is 13.15%. 
 
 ## KNN 
-```{r}
-knn.pred <- knn(pca.tr[,-1], pca.tst[, -21], pca.tr[,1], k =5) # use CV the best k is 5 
-knn.MSE <- 1 - mean(knn.pred == pca.tst[,21])
-table(knn.pred, pca.tst[,21])
-knn.MSE
-
+```{r, cache=TRUE}
+# KNN of raw data
+knn.pred_raw <- knn(train_df[,-1], test_df[,-1],train_df[,1], k =5) # use CV the best k is 5 
+raw_knn_MSE <- 1 - mean(knn.pred_raw == test_df[,1])
+raw_knn_table <- table(knn.pred_raw, test_df[,1])
+raw_knn_table
+raw_knn_MSE
 ```
-Clearly, with KNN method, the misclassifcation rate is 3.02%. 4-9 pair is the hardest one to predict.
+
+```{r, cache=TRUE}
+# use cv to find best k 
+knn_err <- rep(0,10)
+for (i in 1:10){
+  knn.cv <- knn.cv(pca.tr[,-1], pca.tr[,1], k = i)
+  knn_err[i] <- mean(knn.cv != pca.tr[,1])
+}
+plot(knn_err, xlab = "k", ylab = "MCR")
+```
+
+```{r, cache=TRUE}
+# KNN of pca data
+knn.pred <- knn(pca.tr[,-1], pca.tst[, -21], pca.tr[,1], k =5) # use CV the bestg k is 5 
+pca_knn_MSE <- 1 - mean(knn.pred == pca.tst[,21])
+table(knn.pred, pca.tst[,21])
+pca_knn_MSE
+```
+Clearly, with KNN method, the misclassifcation rate is 3.01%. 4-9 pair is the hardest one to predict.
 
 
 ## SVM
 ```{r}
-pca.svm <- svm(label~., data = pca.tr, method="C-classification", kernal="radial", gamma= 0.1, cost=10)
-svm.pred <- predict(pca.svm, pca.tst)
-table(svm.pred, pca.tst[,21])
-knn.MSE <- 1- mean(svm.pred == pca.tst[,21])
-knn.MSE
+#SVM for raw data 
+raw_svm_cv <- tune(svm,label~.,data=train_df ,kernel="polynomial",degree = 4,  ranges=list(cost=c(0.001, 0.01, 0.1, 1,5,10,100) ))
+raw_svm <- svm(label~., data = train_df, method="C-classification", kernal="radial", gamma= 0.1, cost=10)
+raw_svm_pred <- predict(raw_svm, test_df)
+raw_table_svm <- table(raw_svm_pred, test$y)
+raw_svm_MSE <- 1- mean(raw_svm_pred == test$y)
+raw_svm_MSE
+raw_table_svm
+```
+
+
+```{r}
+#SVM for pca data 
+pca_svm <- svm(label~., data = pca.tr, method="C-classification", kernal="radial", gamma= 0.1, cost=10)
+pca_svm_pred <- predict(pca_svm, pca.tst)
+raw_table_svm <- table(pca_svm_pred, pca.tst[,21])
+pca_svm_MSE <- 1- mean(pca_svm_pred == pca.tst[,21])
+pca_svm_MSE
+raw_table_svm
+plot(pca.svm, data = pca.tr[1:250,], PC2 ~ PC1, fill = T)
 ```
 Clearly, with SVM method, the misclassifcation rate is 2.17%. 4-9 pair is the hardest one to predict.
