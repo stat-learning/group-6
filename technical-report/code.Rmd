@@ -225,7 +225,7 @@ raw_log <- multinom(label~., data=train_df, MaxNWts = 10000)
 
 ```{r cache=TRUE}
 raw_log_pred <- predict(raw_log, test_df, type="class")
-raw_log_MSE <- mean(raw_log_pred!=test$y)
+raw_log_MCR <- mean(raw_log_pred!=test$y)
 ```
 
 ```{r, cache=TRUE}
@@ -236,18 +236,18 @@ raw_log_lasso <- cv.glmnet(train$x, train$y, family = "multinomial", parallel= T
 ```{r, cache=TRUE}
 plot(raw_log_ridge)
 plot(raw_log_lasso)
-raw_ridge_MSE = rep(NA,length = length(raw_log_ridge$lambda))
+raw_ridge_MCR = rep(NA,length = length(raw_log_ridge$lambda))
 for (i in 1:length(raw_log_ridge$lambda)){
   p = predict(raw_log_ridge, s = raw_log_ridge$lambda[i], newx = test$x, type = "class")
-  raw_ridge_MSE[i] =  mean(p != test$y)
+  raw_ridge_MCR[i] =  mean(p != test$y)
 }
-raw_ridge_MSE= min(raw_ridge_MSE)
-raw_lasso_MSE = rep(NA,length = length(raw_log_lasso$lambda))
+raw_ridge_MCR= min(raw_ridge_MCR)
+raw_lasso_MCR = rep(NA,length = length(raw_log_lasso$lambda))
 for (i in 1:length(raw_log_lasso$lambda)){
   p = predict(raw_log_lasso, s = raw_log_lasso$lambda[i], newx = test$x, type = "class")
-  raw_lasso_MSE[i] =  mean(p != test$y)
+  raw_lasso_MCR[i] =  mean(p != test$y)
 }
-raw_lasso_MSE= min(raw_lasso_MSE)
+raw_lasso_MCR= min(raw_lasso_MCR)
 ```
 
 ## KNN
@@ -264,12 +264,14 @@ plot(knn_err, xlab = "k", ylab = "MCR")
 
 ```{r cache=TRUE}
 knn.pred_raw <- knn(train_df[,-1], test_df[,-1],train_df[,1], k =5) # use CV the best k is 5 
-raw_knn_MSE <- 1 - mean(knn.pred_raw == test_df[,1])
 raw_knn_table <- table(knn.pred_raw, test_df[,1])
 raw_knn_table
-raw_knn_MSE
 ```
 
+```{r}
+raw_knn_MCR <- mean(knn.pred_raw != test_df[,1])
+raw_knn_MCR
+```
 
 ## SVM
 
@@ -279,8 +281,8 @@ raw_svm_cv <- tune(svm,label~.,data=train_df ,kernel="polynomial",degree = 4,  r
 raw_svm <- svm(label~., data = train_df, method="C-classification", kernal="radial", gamma= 0.1, cost=10)
 raw_svm_pred <- predict(raw_svm, test_df)
 raw_table_svm <- table(raw_svm_pred, test$y)
-raw_svm_MSE <- 1- mean(raw_svm_pred == test$y)
-raw_svm_MSE
+raw_svm_MCR <- mean(raw_svm_pred != test$y)
+raw_svm_MCR
 raw_table_svm
 ```
 
@@ -416,7 +418,7 @@ pred.bag <- predict(rf.bag, newdata = pca.tst, type = "class")
 (conf.bag <- table(pred.bag, pca.tst$label))
 ```
 
-```{r bagged-rf-mse}
+```{r bagged-rf-MCR}
 (sum(conf.bag) - sum(diag(conf.bag))) / 
   sum(conf.bag)
 ```
@@ -468,8 +470,8 @@ pca_log <- multinom(label~., data=pca.tr)
 ```
 
 ```{r cache=TRUE}
-raw_log_pred <- predict(raw_log, test_df, type="class")
-raw_log_MSE <- mean(raw_log_pred!=test$y)
+pca_log_pred <- predict(pca_log, pca.tst, type="class")
+pca_log_MCR <- mean(pca_log_pred!=pca.tst[,1])
 ```
 
 ```{r cache=TRUE}
@@ -481,34 +483,31 @@ pca_log_lasso <- cv.glmnet(as.matrix(pca.tr[,-1]), pca.tr[,1], family = "multino
 ```{r, cache=TRUE}
 plot(pca_log_ridge)
 plot(pca_log_lasso)
-pca_ridge_MSE = rep(NA,length = length(pca_log_ridge$lambda))
+pca_ridge_MCR = rep(NA,length = length(pca_log_ridge$lambda))
 for (i in 1:length(pca_log_ridge$lambda)){
   p = predict(pca_log_ridge, s = pca_log_ridge$lambda[i], newx = as.matrix(pca.tst[,-1]), type = "class")
-  pca_ridge_MSE[i] =  mean(p != pca.tst[,1])
+  pca_ridge_MCR[i] =  mean(p != pca.tst[,1])
 }
-pca_ridge_MSE= min(pca_ridge_MSE)
+pca_ridge_MCR= min(pca_ridge_MCR)
 
-pca_lasso_MSE = rep(NA,length = length(pca_log_lasso$lambda))
+pca_lasso_MCR = rep(NA,length = length(pca_log_lasso$lambda))
 for (i in 1:length(pca_log_lasso$lambda)){
   p = predict(pca_log_lasso, s = pca_log_lasso$lambda[i], newx = as.matrix(pca.tst[,-1]), type = "class")
-  pca_lasso_MSE[i] =  mean(p != pca.tst[,1])
-  pca_lasso_MSE= min(pca_lasso_MSE)
+  pca_lasso_MCR[i] =  mean(p != pca.tst[,1])
+  pca_lasso_MCR= min(pca_lasso_MCR)
 }
 ```
 
 ```{r}
-par(mfrow=c(2,2))
-par(mar=c(0.1,0.1,0.1,0.1))
-plot(raw_log_lasso)
-plot(raw_log_ridge)
+par(mfrow=c(1,2))
+par(mar=c(0.1,0.1))
 plot(pca_log_lasso)
 plot(pca_log_ridge)
 ```
 
 ```{r}
-# Summary of MSEs
-c(raw_log_MSE, raw_ridge_MSE, raw_lasso_MSE)
-c(pca_log_MSE, pca_ridge_MSE, pca_lasso_MSE)
+# Summary of MCRs
+c(pca_log_MCR, pca_ridge_MCR, pca_lasso_MCR)
 ```
 
 ## KNN 
@@ -534,11 +533,15 @@ pca.svm <- svm(label~., data = pca.tr, method="C-classification", kernal="radial
 ```{r}
 pca_svm <- svm(label~., data = pca.tr, method="C-classification", kernal="radial", gamma= 0.1, cost=10)
 pca_svm_pred <- predict(pca_svm, pca.tst)
-raw_table_svm <- table(pca_svm_pred, pca.tst[,1])
-pca_svm_MSE <- mean(pca_svm_pred != pca.tst[,1])
-pca_svm_MSE
-raw_table_svm
+pca_table_svm <- table(pca_svm_pred, pca.tst[,1])
+pca_table_svm
 ```
+
+```{r}
+pca_svm_MCR <- mean(pca_svm_pred != pca.tst[,1])
+pca_svm_MCR
+```
+
 
 ```{r}
 plot(pca_svm, data = pca.tr[1:250,], PC2 ~ PC1, fill = T)
