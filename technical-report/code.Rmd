@@ -460,6 +460,108 @@ The misclassification rate is 9.81. 4-9 is still the most difficult pair to pred
 
 ## Logistic Regression 
 
+```{r}
+# create dummy variables for the digits. 	
+pca.log.tr <- pca.tr %>% 	train_df
+  mutate(iszero = as.numeric(label == 0),	
+         isone = as.numeric(label == 1),	
+         istwo = as.numeric(label == 2),	
+         isthree = as.numeric(label == 3),	
+         isfour = as.numeric(label == 4),	
+         isfive = as.numeric(label == 5),	
+         issix = as.numeric(label == 6),	
+         isseven = as.numeric(label == 7),	
+         iseight = as.numeric(label == 8),	
+         isnine  = as.numeric(label == 9))	
+  
+pca.log.tst <- pca.tst %>%
+  mutate(iszero = as.numeric(label == 0),	
+         isone = as.numeric(label == 1),	
+         istwo = as.numeric(label == 2),	
+         isthree = as.numeric(label == 3),	
+         isfour = as.numeric(label == 4),	
+         isfive = as.numeric(label == 5),	
+         issix = as.numeric(label == 6),	
+         isseven = as.numeric(label == 7),	
+         iseight = as.numeric(label == 8),	
+         isnine  = as.numeric(label == 9))	
+```
+
+```{r include=FALSE, echo=FALSE}	
+train.zero <- pca.log.tr %>% dplyr::select(-c(isone, istwo, isthree, isfour, isfive, issix, isseven, iseight, isnine, label))	
+train.one <- pca.log.tr %>% dplyr::select(-c(iszero, istwo, isthree, isfour, isfive, issix, isseven, iseight, isnine, label))	
+train.two <- pca.log.tr %>% dplyr::select(-c(iszero, isone, isthree, isfour, isfive, issix, isseven, iseight, isnine, label))	
+train.three <- pca.log.tr %>% dplyr::select(-c(iszero, isone, istwo, isfour, isfive, issix, isseven, iseight, isnine, label))	
+train.four <- pca.log.tr %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfive, issix, isseven, iseight, isnine, label))	
+train.five <- pca.log.tr %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfour, issix, isseven, iseight, isnine, label))	
+train.six <- pca.log.tr %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfour, isfive, isseven, iseight, isnine, label))	
+train.seven <- pca.log.tr %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfour, isfive, issix, iseight, isnine, label))	
+train.eight <- pca.log.tr %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfour, isfive, issix, isseven, isnine, label))	
+train.nine <- pca.log.tr %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfour, isfive, issix, isseven, iseight, label))	
+```	
+
+```{r include=FALSE, echo=FALSE}	
+test.zero <- pca.log.tst %>% dplyr::select(-c(isone, istwo, isthree, isfour, isfive, issix, isseven, iseight, isnine, label))	
+test.one <- pca.log.tst %>% dplyr::select(-c(iszero, istwo, isthree, isfour, isfive, issix, isseven, iseight, isnine, label))	
+test.two <- pca.log.tst %>% dplyr::select(-c(iszero, isone, isthree, isfour, isfive, issix, isseven, iseight, isnine, label))	
+test.three <- pca.log.tst %>% dplyr::select(-c(iszero, isone, istwo, isfour, isfive, issix, isseven, iseight, isnine, label))	
+test.four <- pca.log.tst %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfive, issix, isseven, iseight, isnine, label))	
+test.five <- pca.log.tst %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfour, issix, isseven, iseight, isnine, label))	
+test.six <- pca.log.tst %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfour, isfive, isseven, iseight, isnine, label))	
+test.seven <- pca.log.tst %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfour, isfive, issix, iseight, isnine, label))	
+test.eight <- pca.log.tst %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfour, isfive, issix, isseven, isnine, label))	
+test.nine <- pca.log.tst %>% dplyr::select(-c(iszero, isone, istwo, isthree, isfour, isfive, issix, isseven, iseight, label))	
+```	
+
+
+```{r echo=FALSE}	
+set.seed(1)	
+prob.zero <- glm(iszero ~ ., data = train.zero, family = "binomial")	
+prob.one <- glm(isone ~ ., data = train.one, family = "binomial")	
+prob.two <- glm(istwo ~ ., data = train.two, family = "binomial")	
+prob.three <- glm(isthree ~ ., data = train.three, family = "binomial")	
+prob.four <- glm(isfour ~ ., data = train.four, family = "binomial")	
+prob.five <- glm(isfive ~ ., data = train.five, family = "binomial")	
+prob.six <- glm(issix ~ ., data = train.six, family = "binomial")	
+prob.seven <- glm(isseven ~ ., data = train.seven, family = "binomial")	
+prob.eight <- glm(iseight ~ ., data = train.eight, family = "binomial")	
+prob.nine <- glm(isnine ~ ., data = train.nine, family = "binomial")	
+```	
+
+```{r}
+ProbabilityOfEachValue <- data.frame(predict(prob.zero, test.zero),	
+                                     predict(prob.one, test.one), 
+                                     predict(prob.two, test.two),	
+                                     predict(prob.three, test.three),	
+                                     predict(prob.four, test.four),	
+                                     predict(prob.five, test.five),	
+                                     predict(prob.six, test.six),	
+                                     predict(prob.seven, test.seven),	
+                                     predict(prob.eight, test.eight),	
+                                     predict(prob.nine, test.nine))
+```
+
+```{r}	
+# Find the index with the highest probability predicted by the models for each class 
+Label <- rep(NA, nrow(ProbabilityOfEachValue))	
+for (i in seq(nrow(ProbabilityOfEachValue)))	{
+  Label[i] <- which.max(ProbabilityOfEachValue[i,])
+}
+```
+
+```{r}
+(conf.log <- table(Label, pca.tst$label))
+```
+
+```{r}
+(sum(conf.log) - sum(diag(conf.log))) / sum(conf.log)
+```
+
+The misclassification rate is 13.15%. 
+
+
+**Using multinom package**
+
 ```{r cache=TRUE}
 lambdas <- seq(2,0,length = 20)
 registerDoParallel()
@@ -499,9 +601,11 @@ for (i in 1:length(pca_log_lasso$lambda)){
 ```
 
 ```{r}
-par(mfrow=c(1,2))
-par(mar=c(0.1,0.1))
-plot(pca_log_lasso)
+par(mfrow=c(2,2))	
+par(mar=c(0.1,0.1,0.1,0.1))	
+plot(raw_log_lasso)	
+plot(raw_log_ridge)	
+plot(pca_log_lasso)	
 plot(pca_log_ridge)
 ```
 
