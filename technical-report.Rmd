@@ -55,11 +55,14 @@ The data is split into a training set of 60k images and a test set of 10k images
 This will be the most extensive section and will include your results as well.
 
 - Classification Tree (with pruning)
+  Our first pruned classification tree had limited success. Even without pruning, the optimal number of nodes was selected (13), and the graph of error against size showed no clear elbow indicating optimal size. The first tree could not classify the class 5 with only 13 splits, so we created a similar tree using another package that successfully modeled all classes. The important pixels (at each split) seem to be near the center of the image (around 400). The misclassification rate is near 40%, as this is a rather weak model with a limited numer of splits.
 
 - Random Forest (with bagging)
-
+  The plot of error against n trees shows that the pixels had variable importance in predicting the random forest. This plot also shows that as long as there are 50-100 trees, error is rather low. The mean decrease accuracy chart shows that the random forest identified 7-13 most imortant pixels, as did the simple tree. The bagged random forest (m = p) also identified a similar number of important pixels that seem to be near the center of the image. The error rate was the lowest when m=1 and the highest when m=p showing that there may be overfitting in the random forest, as it fairs better when less predictors are considered at each split.
+  
 - Boosted Tree
-
+  The boosted model also identified a similar number of important pixels near the center of the image. The error rate for this model, 8%, is a little higher than the bagged random forest.
+  
 - Logistic Regression for Multinomial Distribution (with Ridge and Lasso)
 
 - KNN
