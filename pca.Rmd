@@ -115,7 +115,6 @@ ggplot(d[1:50,], aes(x = PC, y = PVE)) +
 
 We only need 20 PCs to capture 90% of the variance in our dataset.
 
-<<<<<<< HEAD
 
 ```{r subsetting-pca}
 set.seed(1)
@@ -386,6 +385,7 @@ for (i in 1:length(pca_log_lasso$lambda)){
   p = predict(pca_log_lasso, s = pca_log_lasso$lambda[i], newx = as.matrix(pca.tst[,-21]), type = "class")
   pca_lasso_MSE[i] =  mean(p != pca.tst[,21])
   pca_lasso_MSE= min(pca_lasso_MSE)
+}
 ```
 
 ```{r}

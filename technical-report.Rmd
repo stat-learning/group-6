@@ -6,8 +6,24 @@ output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(MASS)
+library(tree)
+library(gbm)
+library(randomForest)
+library(class)
+library(e1071)  
+library(tidyverse)
+library(caret)
+library(nnet)
+library(glmnet)
+library(doParallel)
+library(rpart)
+library(imager)
 ```
+
 
 Your technical report should be an .Rmd file that contains the following sections. So as not to make the compilation (knitting) of the document not take too long, consider setting cache = TRUE in the curly braces of any R chunk with substantial computing. Please knit both to pdf and github document (.md).
 
@@ -28,6 +44,50 @@ General conclusions:
 ## The Data
 **Where does the data come from? How many observations? How many variables? What does each observation refer to (what is the observational unit)? What sorts of data processing was necessary to get the data in shape for analysis?**
 
+```{r loading-data, cache=TRUE, include=FALSE}
+# This part read idx files and store image data into train$x and 
+# test$x in matrix form, store corresponding labels in train$y 
+# and test$y in array form 
+load_image_file <- function(filename) {
+   ret = list()
+    f = file(filename,'rb')
+    readBin(f,'integer',n=1,size=4,endian='big')
+    ret$n = readBin(f,'integer',n=1,size=4,endian='big')
+    nrow = readBin(f,'integer',n=1,size=4,endian='big')
+    ncol = readBin(f,'integer',n=1,size=4,endian='big')
+    x = readBin(f,'integer',n=ret$n*nrow*ncol,size=1,signed=F)
+    ret$x = matrix(x, ncol=nrow*ncol, byrow=T)
+    close(f)
+    ret
+}
+
+load_label_file <- function(filename) {
+    f = file(filename,'rb')
+    readBin(f,'integer',n=1,size=4,endian='big')
+    n = readBin(f,'integer',n=1,size=4,endian='big')
+    y = readBin(f,'integer',n=n,size=1,signed=F)
+    close(f)
+    y
+}
+
+train <- load_image_file("data/train-images-idx3-ubyte")
+test <- load_image_file("data/t10k-images-idx3-ubyte")
+# rescale pixels for computational reason
+train$x <- train$x/255
+test$x <- test$x/255
+
+train$y <- load_label_file("data/train-labels-idx1-ubyte")
+test$y <- load_label_file("data/t10k-labels-idx1-ubyte")  
+
+train_df <- data.frame(train$y, train$x) %>%
+  rename(label = train.y)
+test_df <- data.frame(test$y, test$x) %>%
+  rename(label = test.y)
+
+train_df$label <- as.factor(train_df$label)
+test_df$label <- as.factor(test_df$label)
+
+```
 The data comes from the MNIST database of handwritten digits. The digits have been size-normalized and centered in a fixed-size image. 
 
 The data is split into a training set of 60k images and a test set of 10k images. 
@@ -42,11 +102,80 @@ The data is split into a training set of 60k images and a test set of 10k images
 ## Exploratory Data Analysis
 **Explore the structure of the data through graphics. Here you can utilize both traditional plots as well as methods from unsupervised learning. Understanding the distribution of your response is particular important, but also investigate bivariate and higher-order relationships that you expect to be particular interesting.**
 
-- The digit classes are well-separated.
+1. The digit classes are well-separated.
+```{r,cache = TRUE, include=FALSE}
+ggplot(train_df,aes(x = label)) + geom_histogram(stat = "count")
+```
+<center>
+![mean](pics/freq.png)
+</center>
+shown by the frequency graph above, about equal amount of images for each digit. 
 
-- Handwriting patterns and variations.
 
-- PCA & early predictions.
+2. Handwriting patterns and variations.
+
+Let's take a look at first 25 images in the training data. It's clear that those digits are centered and manipulated with 
+some anti-aliasing technique. As you might observe, among six 1's below, different styles appear such as italic version and  formal version. We can say that the data set has generalization of digit styles. 
+<center>
+![mean](pics/first25.png)
+</center>
+```{r, cache=TRUE, include=FALSE}
+par(mfrow=c(5,5))
+par(mar=c(0.1,0.1,0.1,0.1))
+for (i in 1:25){
+  image(matrix(train$x[i,],28)[,28:1])
+}
+```
+
+Then for each digit, we average every pixels and get a mean form for each digit. 
+<center>
+![mean](pics/mean.png)
+</center>
+
+We calculate Euclidean distance for each image to its mean form and generate distance(to the mean) distributions for each digit. 
+```{r data-preprocessing, cache= TRUE, include= FALSE}
+
+# for each digit class, calculate the mean digit, mean distance from the mean digit and 
+# variance of the distance
+
+label <- seq(0,9) 
+
+distance_mean <- rep(NA,10)
+distance_var <- rep(NA,10)
+mean_digits <- matrix(rep(0,7840),10)
+
+par(mfrow=c(2,5))
+
+for(i in 1:10){
+  df <- train$x[train$y ==label[i],]   # create a dataframe with only the i-th digit
+  mean_digit <- colMeans(df)            # get the mean form for each digit(0-9)
+  mean_digits[i,] <- mean_digit         # store the mean image into mean_digits 
+  dif <- sweep(df,2,mean_digit)         # store the difference for each image from its mean form 
+  distance <- rowSums(dif^2)            # distance is an arrary of Euclidean distances from each image to its mean form
+  distance_mean[i] <- mean(distance)
+  distance_var[i] <- var(distance)
+  
+  # plot density of distances for each digit 
+  plot(density(distance), xlab = "distance", ylab = "density", main = as.character(label[i]))
+}
+
+```
+Here's the mean form for each digit. 
+
+
+```{r, cache=TRUE, include=FALSE}
+# Display the mean form for each digit
+par(mfrow=c(2,5))
+par(mar=c(0.1,0.1,0.1,0.1))
+for (i in 1:10){
+  image(matrix(mean_digits[i,],28)[,28:1]*255)
+}
+```
+
+
+
+
+3. PCA & early predictions.
 
 
 ## Modeling
