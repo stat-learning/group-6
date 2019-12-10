@@ -195,30 +195,50 @@ Let's visualize our digits with the first 2 PCs.
 <center>
 ![mean](images/pca.png)
 </center>
-We can observe from the image that 1-0 pair is well seperated, 4-9 pair is overlapping. Based on the distribution of digits, we think PC1 represents centerization of the digit, for example, 0 has more pixels on the outer area of 28 by 28 box. 1 has more pixels in the middle which can be illustrated from the mean images above. Thus, generally 0s has larger PC1 than 1s. We think PC2 is related to horizontal symmetry, for example, 3 and 1 are symmetric horizontally, which have larger PC2. 9 and 7 are not horizontally symmetric, which have lower PC2. 
+We can observe from the image that the 1-0 pair is well seperated while there is much overlapping between 4 and 9. Based on the distribution of digits, we think PC1 represents centerization of the digit, for example, 0 has more pixels on the outer area of 28 by 28 box. 1 has more pixels in the middle which can be illustrated from the mean images above. Thus, generally 0s has larger PC1 than 1s. We think PC2 is related to horizontal symmetry, for example, 3 and 1 are symmetric horizontally, which have larger PC2. 9 and 7 are not horizontally symmetric, which have lower PC2. 
 
 
-Based on the PC graph above, we predict that 1-0 pair will be easily recognized and 4-9 pair might be the hardest one to seperate. 
+Based on the PC graph above, we predict that the 1-0 pair will be easily recognized and 4-9 might be hard to seperate. 
 
 ## Modeling
 **Construct (descriptive and/or predictive) (classification and/or regression) models that address your research questions. You are encouraged to fit many different classes of models and see how they compare in terms the bias/variance tradeoff (do you have a Rashomon effect going on?). Also be sure to guard against overfitting through cross-validation or shrinkage/penalization (don’t forget about ridge regression and the lasso).**
 
 This will be the most extensive section and will include your results as well.
 
-- Classification Tree (with pruning)
-  Our first pruned classification tree had limited success. Even without pruning, the optimal number of nodes was selected (13), and the graph of error against size showed no clear elbow indicating optimal size. The first tree could not classify the class 5 with only 13 splits, so we created a similar tree using another package that successfully modeled all classes. The important pixels (at each split) seem to be near the center of the image (around 400). The misclassification rate is near 40%, as this is a rather weak model with a limited numer of splits.
+- **Classification Tree (with pruning)**
 
-- Random Forest (with bagging)
-  The plot of error against n trees shows that the pixels had variable importance in predicting the random forest. This plot also shows that as long as there are 50-100 trees, error is rather low. The mean decrease accuracy chart shows that the random forest identified 7-13 most imortant pixels, as did the simple tree. The bagged random forest (m = p) also identified a similar number of important pixels that seem to be near the center of the image. The error rate was the lowest when m=1 and the highest when m=p showing that there may be overfitting in the random forest, as it fairs better when less predictors are considered at each split.
+Our first pruned classification tree had limited success. Even without pruning, the optimal number of nodes was selected (n = 16), and the graph of error against size showed no clear elbow indicating optimal size. 
   
-- Boosted Tree
+<center>
+![tree-og-pruning](images/tree-og-pruning.png)
+</center>
+  
+The first tree could not classify the class 5 with only 16 splits (using the `tree` package), so we created a similar tree using another package (`rpart`) that successfully modeled all classes. The important pixels (at each split) seem to be near the center of the image (around 400). The misclassification rate is near 40%, as this is a rather weak model with a limited numer of splits.
+  
+<center>
+![tree-og-plot](images/tree-og-plot.png)
+</center>
+
+<center>
+![tree-rpart](images/tree-rpart.png)
+</center>
+
+- **Random Forest (with bagging)**
+
+  The plot of error against n trees shows that the pixels had variable importance in predicting the random forest. This plot also shows that as long as there are 50-100 trees, error is rather low. The mean decrease accuracy chart shows that the random forest identified 7-13 most imortant pixels, as did the simple tree. 
+  
+  
+  The bagged random forest (m = p) also identified a similar number of important pixels that seem to be near the center of the image. The error rate was the lowest when m=1 and the highest when m=p showing that there may be overfitting in the random forest, as it fairs better when less predictors are considered at each split.
+  
+- **Boosted Trees**
+
   The boosted model also identified a similar number of important pixels near the center of the image. The error rate for this model, 8%, is a little higher than the bagged random forest.
   
-- Logistic Regression for Multinomial Distribution (with Ridge and Lasso)
+- **Logistic Regression** (with Ridge and Lasso)
 
-- KNN
+- **KNN**
 
-- SVM 
+- **SVM** 
 
 All models are cross-valiated. 
 
