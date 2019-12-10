@@ -136,7 +136,7 @@ We calculate Euclidean distance for each image to its mean form and generate dis
 <center>
 ![mean](images/distribution.png)
 </center>
-```{r data-preprocessing, cache= TRUE, include= FALSE}
+```{r data-preprocessing, cache= TRUE, include=FALSE}
 
 # for each digit class, calculate the mean digit, mean distance from the mean digit and 
 # variance of the distance
@@ -160,6 +160,7 @@ for(i in 1:10){
   
   # plot density of distances for each digit 
   plot(density(distance), xlab = "distance", ylab = "density", main = as.character(label[i]))
+  axis(1, seq(0,80,20))
 }
 
 ```
@@ -205,20 +206,35 @@ Based on the PC graph above, we predict that 1-0 pair will be easily recognized 
 
 This will be the most extensive section and will include your results as well.
 
-- Classification Tree (with pruning)
+- **Classification Tree (with pruning)**
   Our first pruned classification tree had limited success. Even without pruning, the optimal number of nodes was selected (13), and the graph of error against size showed no clear elbow indicating optimal size. The first tree could not classify the class 5 with only 13 splits, so we created a similar tree using another package that successfully modeled all classes. The important pixels (at each split) seem to be near the center of the image (around 400). The misclassification rate is near 40%, as this is a rather weak model with a limited numer of splits.
 
-- Random Forest (with bagging)
+- **Random Forest (with bagging)**
   The plot of error against n trees shows that the pixels had variable importance in predicting the random forest. This plot also shows that as long as there are 50-100 trees, error is rather low. The mean decrease accuracy chart shows that the random forest identified 7-13 most imortant pixels, as did the simple tree. The bagged random forest (m = p) also identified a similar number of important pixels that seem to be near the center of the image. The error rate was the lowest when m=1 and the highest when m=p showing that there may be overfitting in the random forest, as it fairs better when less predictors are considered at each split.
   
-- Boosted Tree
+- **Boosted Tree**
   The boosted model also identified a similar number of important pixels near the center of the image. The error rate for this model, 8%, is a little higher than the bagged random forest.
   
-- Logistic Regression for Multinomial Distribution (with Ridge and Lasso)
+- **Logistic Regression for Multinomial Distribution (with Ridge and Lasso)**
+  At the first place, we use 10 one-to-all logistic classifiers with pca data set. We find that the coding for it is too confused and not clean, so we use instead *multinom* function which can do muti-class logistic regression with multinomial distribution. We find the misclassification rates of both methods are about same. Then we use *ridge* and *lasso* regularization to prevent overfitting. It turns out that we don't encounter any overfitting problem shown by the graphs below. 
+<center>
+![mean](images/log.png)
+</center>
+In the graph above, x-axis is lambda values, y- axis is multinomial deviances. Clearly, as lambda increases, the model performs worse, and lambda equals 0 will generate the best classifier. Since the overfitting problem is not obvious, we have ridge and lasso resulting similarly to the original multinomial regression. Our best result for original images is 7.89% error rate and 11.95% error rate for pca data set. 
+- **KNN**
+  We use *knn* function to predict k nearest neighbors result. We apply leave-one-out cross validation on the pca data set, and have *k = 5* resulting best. 
+<center>
+![mean](images/knn.png)
+</center>
+Because it takes too long to do cross validation on the original data set. We also apply *k = 5* to the original data set. As, a non-parametric model, k nearest neighbors generate the second best result among all of our models. The misclassification rate of the original data set is 3.06% and the misclassification rate of the pca data set is 3.02%.
 
-- KNN
-
-- SVM 
+- **SVM**
+  We apply one of the most complicated model, support vector machine, to the pca data set. Generally, SVM is finding a seperating hyperpplane that best seperate 2 different classes. With its unique different kernel tricks, it can map raw predictors to a higher dimensions with arbitary complexity. Then the model does linear seperating in that higher dimension, which will generate better results. We can consider this as an automated way of creating polynomial terms or interaction terms in logistic regression. We choose the "radial" kernel and get **2.17%** misclassification rate, which is an awesome result. Here's the region plot for the model with only the first 2 PCs. 
+<center>
+![mean](images/svm.png)
+</center>
+The built in plot method doesn't give us a clear plot because we have 10 classes and 20 predictors. But it still sparks us with some seperating region with only 2 predictors, PC1 and PC2. Unfortunately, when we apply support vector machine on the original images, it takes too long to train the model, so we give up this model finally. But, we believe that with a correct kernel and tuned parameters, it will generate a better result than 2.17%. 
+  
 
 All models are cross-valiated. 
 
