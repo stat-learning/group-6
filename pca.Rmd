@@ -24,7 +24,9 @@ library(doParallel)
 library(rpart)
 ```
 
-```{r cache=TRUE}
+
+
+```{r loading-data, include=FALSE}
 # This part read idx files and store image data into train$x and 
 # test$x in matrix form, store corresponding labels in train$y 
 # and test$y in array form 
@@ -58,7 +60,8 @@ test$y <- load_label_file("data/t10k-labels-idx1-ubyte")
 
 ```
 
-```{r cache=TRUE}
+
+```{r data-processing, include=FALSE}
 train$x <- train$x/255
 test$x <- test$x/255
 
@@ -72,40 +75,38 @@ test_df$label <- as.factor(test_df$label)
 ```
 
 
-```{r cache=TRUE}
+
+
+
+```{r pca, cache=TRUE}
 # Fit PCA on the training dataset
 pca <- prcomp(train_df[, -1])
-```
 
-```{r cache=TRUE}
 # Fit PCA on the test dataset
 test_pca <- predict(pca, newdata = test_df)
 ```
 
-```{r}
+```{r pca-plot}
 # Store the first two coordinates and the label in a data frame
-pca_plot <- data.frame(pca_x = pca$x[, "PC1"], pca_y = pca$x[, "PC2"], 
+pca_plot <- data.frame(PC1 = pca$x[, "PC1"], PC2 = pca$x[, "PC2"], 
                        label = as.factor(train_df$label))
-```
 
-```{r}
 # Plot the first two principal components using the true labels as color 
-ggplot(pca_plot[1:250,], aes(x = pca_x, y = pca_y, color = label)) + 
+g <- ggplot(pca_plot[1:250,], aes(x = PC1, y = PC2, color = label)) + 
 	ggtitle("PCA of MNIST sample") + 
 	geom_text(aes(label = label)) + 
 	theme(legend.position = "none")
 ```
 
 ```{r}
-d <- data.frame(PC = 1:784,
-                PVE = pca$sdev^2 / sum(pca$sdev^2))
-ggplot(d, aes(x = PC, y = PVE)) +
-  geom_line() + 
-  geom_point() +
-  theme_bw(base_size = 18)
+g + geom_vline(xintercept = -2.4, col = "lightblue", linetype="dashed") +
+  geom_hline(yintercept = -.7, col = "tan", linetype="dashed")
 ```
 
-```{r}
+```{r scree-plot}
+d <- data.frame(PC = 1:784,
+                PVE = pca$sdev^2 / sum(pca$sdev^2))
+
 ggplot(d[1:50,], aes(x = PC, y = PVE)) +
   geom_line() + 
   geom_point() +
@@ -114,35 +115,47 @@ ggplot(d[1:50,], aes(x = PC, y = PVE)) +
 
 We only need 20 PCs to capture 90% of the variance in our dataset.
 
-```{r cache=TRUE}
+<<<<<<< HEAD
+
+```{r subsetting-pca}
 set.seed(1)
-pca <- prcomp(train_df[, -1], rank. = 20)
 
-pca.tr <- data.frame(label = train_df[, 1], pca$x)
+# select the first 20 PCs for the training dataset
+pca.tr <- data.frame(label = train_df[, 1], pca$x[, 1:20])
 pca.tr$label <- as.factor(pca.tr$label)
-```
 
-```{r cache=TRUE}
 pca.tst <- test_pca[, 1:20]  # select the first 20 PCs
 pca.tst <- as.data.frame(pca.tst)
 
-pca.tst <- pca.tst %>% mutate(label = test_df$label)
+# select the first 20 PCs for the test dataset
+pca.tst <- test_pca[, 1:20]  
+pca.tst <- data.frame(label = test_df$label, pca.tst)
+
+pca.tst$label <- as.factor(pca.tst$label)
 ```
 
 ## Random Forest
-```{r}
+
+```{r rf-fit, cache=TRUE}
+
 set.seed(1)
 
-rf <- randomForest(pca.tr[, -1], pca.tr$label, ntree=500)
+rf <- randomForest(pca.tr[, -1], pca.tr$label, ntree=500, importance = TRUE)
 rf
 ```
 
-```{r}
+```{r rf-plot, fig.align="center"}
+par(mfrow = c(1,2))
+varImpPlot(rf)
+plot(rf)
+```
+
+```{r rf-pred}
 pred.rf <- predict(rf, pca.tst, type = "class")
 (conf.rf <- table(pred.rf, pca.tst$label))
 ```
 
-```{r}
+```{r rf-mcr}
 (sum(conf.rf) - sum(diag(conf.rf))) / 
   sum(conf.rf)
 ```
@@ -151,25 +164,29 @@ The misclassification rate is 4.89%. The pair that is most difficult to predict 
 
 ## Classification Tree
 
+
 ```{r}
 t <- rpart(label~., data=train_df, method = "class")
 summary(t)
 ```
 
-```{r fig.align="center", fig.width=12, fig.height=8}
+
+```{r tree-fit, cache=TRUE}
+t <- tree(label ~., data = pca.tr, split = "deviance")
+summary(t)
+```
+
+```{r tree-plot, fig.align="center", fig.width=10, fig.height=6}
 plot(t)
 text(t, pretty = 0)
 ```
 
-```{r}
-pred.tree <- predict(t, newdata = test_df, type = "class")
+```{r tree-pred}
+pred.tree <- predict(t, newdata = pca.tst, type = "class")
 (conf.tree <- table(pred.tree, test_df$label))
 ```
-```{r}
-pred.tree <- predict(t.pruned, newdata = test_df, type = "class")
-(conf.tree <- table(pred.tree, test_df$label))
-```
-```{r}
+
+```{r tree-mcr}
 (sum(conf.tree) - sum(diag(conf.tree))) / 
   sum(conf.tree)
 ```
@@ -181,16 +198,16 @@ pred.tree <- predict(t.pruned, newdata = test_df, type = "class")
 t.pruned <- prune(t,  t$cptable[which.min(t$cptable[,"xerror"]),"CP"])
 ```
 
-```{r}
+```{r pruned-tree-fit, cache=TRUE}
 t.cv <- cv.tree(t)
 plot(t.cv$size, t.cv$dev, type = "b", xlab = "n leaves", ylab = "error")
 ```
 
 Not a good case for pruning (best n = 13 was already chosen). 
 
-## Bagging tree
+## Bagging 
 
-```{r}
+```{r bagged-rf-fit, cache=TRUE}
 set.seed(1)
 
 p <- ncol(pca.tr)-1
@@ -199,16 +216,16 @@ rf.bag <- randomForest(label ~., data = pca.tr,
 rf.bag
 ```
 
-```{r}
-varImpPlot(rf.bag)
+```{r bagged-rf-plot}
+varImpPlot(rf.bag, main="Bagging")
 ```
 
-```{r}
+```{r bagged-rf-pred}
 pred.bag <- predict(rf.bag, newdata = pca.tst, type = "class")
 (conf.bag <- table(pred.bag, pca.tst$label))
 ```
 
-```{r}
+```{r bagged-rf-mse}
 (sum(conf.bag) - sum(diag(conf.bag))) / 
   sum(conf.bag)
 ```
@@ -216,8 +233,9 @@ The misclassification rate is 5.15%.
 
 ## Boosting tree
 
-```{r}
+```{r boosted-fit, cache=TRUE}
 set.seed(1)
+
 boost.mnist <- gbm(label~., data = pca.tr, 
                      distribution = "multinomial",
                      n.trees = 50, interaction.depth = 1,
@@ -225,17 +243,84 @@ boost.mnist <- gbm(label~., data = pca.tr,
 summary(boost.mnist)
 ```
 
-```{r}
+
+```{r boosted-pred}
 pred.boost <- predict(boost.mnist, newdata = pca.tst, n.trees = 50)
-pred.boost <- apply(pred.boost, 1, which.max)
+pred.boost <- apply(pred.boost, 1, which.max) -1
 
 (conf.boost <- table(pred.boost, pca.tst$label))
+```
+
+```{r boosted-mcr}
+(sum(conf.boost) - sum(diag(conf.boost))) / 
+  sum(conf.boost)
+```
+
+###Using 5-fold CV
+
+**PCA Dataset**
+
+```{r cache=TRUE}
+boost.pca.cv <- gbm(label~., data = pca.tr, 
+                distribution = "multinomial",
+                n.trees = 500, 
+                interaction.depth = 1,
+                shrinkage = 0.1,
+                cv.folds = 5
+                )
+summary(boost.pca.cv)
+```
+
+```{r}
+print(boost.pca.cv)
+```
+The best number of trees chosen by the boosted model using 5-fold CV on the PCA dataset is 411.
+
+```{r}
+pred.boost.cv <- predict(boost.pca.cv, newdata = pca.tst, n.trees = 500)
+pred.boost.cv <- apply(pred.boost.cv, 1, which.max) -1
+
+(conf.boost <- table(pred.boost.cv, pca.tst$label))
 ```
 
 ```{r}
 (sum(conf.boost) - sum(diag(conf.boost))) / 
   sum(conf.boost)
 ```
+
+The misclassification rate is 9.81. 4-9 is still the most difficult pair to predict.
+
+**Original Dataset**
+
+```{r warning=FALSE, message=FALSE, cache=TRUE}
+boost.og.cv <- gbm(label~., data = train_df, 
+                distribution = "multinomial",
+                n.trees = 500, 
+                interaction.depth = 1,
+                shrinkage = 0.1,
+                cv.folds = 5)
+summary(boost.og.cv)
+```
+
+```{r}
+print(boost.og.cv)
+```
+
+The best number of trees chosen by the boosted model using 5-fold CV on the PCA dataset is 454.
+
+```{r}
+pred.boost.og.cv <- predict(boost.og.cv, newdata = test_df, n.trees=500)
+pred.boost.og.cv <- apply(pred.boost.og.cv, 1, which.max) -1
+
+(conf.boost <- table(pred.boost.og.cv, test_df$label))
+```
+
+```{r}
+(sum(conf.boost) - sum(diag(conf.boost))) / 
+  sum(conf.boost)
+```
+
+The misclassification rate is 8.38. 4-9 is still the most difficult pair to predict.
 
 
 ## Logistic Regression 
@@ -300,8 +385,7 @@ pca_lasso_MSE = rep(NA,length = length(pca_log_lasso$lambda))
 for (i in 1:length(pca_log_lasso$lambda)){
   p = predict(pca_log_lasso, s = pca_log_lasso$lambda[i], newx = as.matrix(pca.tst[,-21]), type = "class")
   pca_lasso_MSE[i] =  mean(p != pca.tst[,21])
-}
-pca_lasso_MSE= min(pca_lasso_MSE)
+  pca_lasso_MSE= min(pca_lasso_MSE)
 ```
 
 ```{r}
@@ -312,6 +396,7 @@ plot(raw_log_ridge)
 plot(pca_log_lasso)
 plot(pca_log_ridge)
 ```
+
 
 
 ```{r}
@@ -354,6 +439,7 @@ Clearly, with KNN method, the misclassifcation rate is 3.01%. 4-9 pair is the ha
 ## SVM
 ```{r}
 #SVM for raw data 
+# This part trains for too long time, we cancel SVM for raw data 
 raw_svm_cv <- tune(svm,label~.,data=train_df ,kernel="polynomial",degree = 4,  ranges=list(cost=c(0.001, 0.01, 0.1, 1,5,10,100) ))
 raw_svm <- svm(label~., data = train_df, method="C-classification", kernal="radial", gamma= 0.1, cost=10)
 raw_svm_pred <- predict(raw_svm, test_df)
@@ -372,6 +458,8 @@ raw_table_svm <- table(pca_svm_pred, pca.tst[,21])
 pca_svm_MSE <- 1- mean(pca_svm_pred == pca.tst[,21])
 pca_svm_MSE
 raw_table_svm
-plot(pca.svm, data = pca.tr[1:250,], PC2 ~ PC1, fill = T)
+plot(pca_svm, data = pca.tr[1:250,], PC2 ~ PC1, fill = T)
+
 ```
+
 Clearly, with SVM method, the misclassifcation rate is 2.17%. 4-9 pair is the hardest one to predict.
