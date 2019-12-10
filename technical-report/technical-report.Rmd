@@ -107,7 +107,7 @@ The data is split into a training set of 60k images and a test set of 10k images
 ggplot(train_df,aes(x = label)) + geom_histogram(stat = "count")
 ```
 <center>
-![mean](pics/freq.png)
+![mean](images/freq.png)
 </center>
 shown by the frequency graph above, about equal amount of images for each digit. 
 
@@ -117,7 +117,7 @@ shown by the frequency graph above, about equal amount of images for each digit.
 Let's take a look at first 25 images in the training data. It's clear that those digits are centered and manipulated with 
 some anti-aliasing technique. As you might observe, among six 1's below, different styles appear such as italic version and  formal version. We can say that the data set has generalization of digit styles. 
 <center>
-![mean](pics/first25.png)
+![mean](images/first25.png)
 </center>
 ```{r, cache=TRUE, include=FALSE}
 par(mfrow=c(5,5))
@@ -129,10 +129,13 @@ for (i in 1:25){
 
 Then for each digit, we average every pixels and get a mean form for each digit. 
 <center>
-![mean](pics/mean.png)
+![mean](images/mean.png)
 </center>
 
 We calculate Euclidean distance for each image to its mean form and generate distance(to the mean) distributions for each digit. 
+<center>
+![mean](images/distribution.png)
+</center>
 ```{r data-preprocessing, cache= TRUE, include= FALSE}
 
 # for each digit class, calculate the mean digit, mean distance from the mean digit and 
@@ -160,7 +163,7 @@ for(i in 1:10){
 }
 
 ```
-Here's the mean form for each digit. 
+
 
 
 ```{r, cache=TRUE, include=FALSE}
@@ -172,11 +175,30 @@ for (i in 1:10){
 }
 ```
 
-
+```{r, cache=TRUE}
+dist_df <- data.frame(x = distance_mean, y = distance_var)
+colnames(dist_df) <- c("mean", "var")
+rownames(dist_df) <- label
+print(dist_df)
+```
+From the summary table, we can see that digit 1 has the lowest mean distance; this indicates that most people write it similarly. 2 has the highest mean distance, so people tend to write 2 in different ways. We also see that 6 and 9 have the highest distance variance, which suggests these two digits have the most variation in people's writing styles. 
 
 
 3. PCA & early predictions.
 
+We use principal component analysis on the original data set and select first 20 PCs to capture 90% of the variance, see the scree plot below. 
+<center>
+![mean](images/scree.png)
+</center>
+
+Let's visualize our digits with the first 2 PCs.
+<center>
+![mean](images/pca.png)
+</center>
+We can observe from the image that 1-0 pair is well seperated, 4-9 pair is overlapping. Based on the distribution of digits, we think PC1 represents centerization of the digit, for example, 0 has more pixels on the outer area of 28 by 28 box. 1 has more pixels in the middle which can be illustrated from the mean images above. Thus, generally 0s has larger PC1 than 1s. We think PC2 is related to horizontal symmetry, for example, 3 and 1 are symmetric horizontally, which have larger PC2. 9 and 7 are not horizontally symmetric, which have lower PC2. 
+
+
+Based on the PC graph above, we predict that 1-0 pair will be easily recognized and 4-9 pair might be the hardest one to seperate. 
 
 ## Modeling
 **Construct (descriptive and/or predictive) (classification and/or regression) models that address your research questions. You are encouraged to fit many different classes of models and see how they compare in terms the bias/variance tradeoff (do you have a Rashomon effect going on?). Also be sure to guard against overfitting through cross-validation or shrinkage/penalization (don’t forget about ridge regression and the lasso).**
