@@ -1,16 +1,9 @@
----
-title: "Experiment with PCA on the MNIST dataset"
-output:
-  pdf_document: default
-  html_document: default
----
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
-library(MASS)
 library(tree)
 library(gbm)
 library(randomForest)
@@ -63,6 +56,74 @@ test_df <- data.frame(test$y, test$x) %>%
 ```
 
 
+# Training on the original dataset
+
+## Pruned Classification Tree
+
+```{r cache=TRUE}
+
+```
+
+## Random Forest 
+
+```{r warning=FALSE, message=FALSE, cache=TRUE}
+boost.og.cv <- gbm(label~., data = train_df, 
+                distribution = "multinomial",
+                n.trees = 500, 
+                interaction.depth = 1,
+                shrinkage = 0.1,
+                cv.folds = 5)
+print(boost.og.cv)
+```
+
+```{r}
+summary(boost.og.cv)
+```
+
+The best number of trees chosen by the boosted model using 5-fold CV on the PCA dataset is 454.
+
+```{r}
+pred.boost.og.cv <- predict(boost.og.cv, newdata = test_df, n.trees=500)
+pred.boost.og.cv <- apply(pred.boost.og.cv, 1, which.max) -1
+
+(conf.boost <- table(pred.boost.og.cv, test_df$label))
+```
+
+```{r}
+(sum(conf.boost) - sum(diag(conf.boost))) / 
+  sum(conf.boost)
+```
+
+The misclassification rate is 8.38. 4-9 is still the most difficult pair to predict.
+
+## Bagged Trees 
+
+```{r cache=TRUE}
+
+```
+
+## Boosted Trees
+
+```{r cache=TRUE}
+
+```
+
+
+## KNN
+
+```{r cache=TRUE}
+
+```
+
+## SVM
+
+```{r cache=TRUE}
+
+```
+
+
+# Dimension reduction with Principle Component Analysis
+
 ```{r pca, cache=TRUE}
 # Fit PCA on the training dataset
 pca <- prcomp(train_df[, -1])
@@ -76,16 +137,11 @@ test_pca <- predict(pca, newdata = test_df)
 pca_plot <- data.frame(PC1 = pca$x[, "PC1"], PC2 = pca$x[, "PC2"], 
                        label = as.factor(train_df$label))
 
-# Plot the first two principal components using the true labels as color 
+# Plot the first two PCs on a subset of 250 samples using the true labels as color 
 g <- ggplot(pca_plot[1:250,], aes(x = PC1, y = PC2, color = label)) + 
 	ggtitle("PCA of MNIST sample") + 
 	geom_text(aes(label = label)) + 
 	theme(legend.position = "none")
-```
-
-```{r}
-g + geom_vline(xintercept = -2.4, col = "lightblue", linetype="dashed") +
-  geom_hline(yintercept = -.7, col = "tan", linetype="dashed")
 ```
 
 ```{r scree-plot}
@@ -114,34 +170,6 @@ pca.tst <- data.frame(label = test_df$label, pca.tst)
 pca.tst$label <- as.factor(pca.tst$label)
 ```
 
-## Random Forest
-
-```{r rf-fit, cache=TRUE}
-
-set.seed(1)
-
-rf <- randomForest(pca.tr[, -1], pca.tr$label, ntree=500, importance = TRUE)
-rf
-```
-
-```{r rf-plot, fig.align="center"}
-par(mfrow = c(1,2))
-varImpPlot(rf)
-plot(rf)
-```
-
-```{r rf-pred}
-pred.rf <- predict(rf, pca.tst, type = "class")
-(conf.rf <- table(pred.rf, pca.tst$label))
-```
-
-```{r rf-mcr}
-(sum(conf.rf) - sum(diag(conf.rf))) / 
-  sum(conf.rf)
-```
-
-The misclassification rate is 4.89%. The pair that is most difficult to predict are 4 and 9.
-
 ## Classification Tree
 
 ```{r tree-fit, cache=TRUE}
@@ -166,7 +194,7 @@ pred.tree <- predict(t, newdata = pca.tst, type = "class")
 
 4-9 is still the most difficult pair to predict, followed closely by 5-0, 7-9, 5-3, 5-8.
 
-## Pruning tree
+**Pruning**
 
 ```{r pruned-tree-fit, cache=TRUE}
 t.cv <- cv.tree(t)
@@ -175,7 +203,34 @@ plot(t.cv$size, t.cv$dev, type = "b", xlab = "n leaves", ylab = "error")
 
 Not a good case for pruning (best n = 13 was already chosen). 
 
-## Bagging 
+## Random Forest
+
+```{r rf-fit, cache=TRUE}
+set.seed(1)
+
+rf <- randomForest(pca.tr[, -1], pca.tr$label, ntree=500, importance = TRUE)
+rf
+```
+
+```{r rf-plot, fig.align="center"}
+par(mfrow = c(1,2))
+varImpPlot(rf)
+plot(rf)
+```
+
+```{r rf-pred}
+pred.rf <- predict(rf, pca.tst, type = "class")
+(conf.rf <- table(pred.rf, pca.tst$label))
+```
+
+```{r rf-mcr}
+(sum(conf.rf) - sum(diag(conf.rf))) / 
+  sum(conf.rf)
+```
+
+The misclassification rate is 4.89%. The pair that is most difficult to predict are 4 and 9.
+
+## Bagged Forest 
 
 ```{r bagged-rf-fit, cache=TRUE}
 set.seed(1)
@@ -201,34 +256,7 @@ pred.bag <- predict(rf.bag, newdata = pca.tst, type = "class")
 ```
 The misclassification rate is 5.15%.
 
-## Boosting tree
-
-```{r boosted-fit, cache=TRUE}
-set.seed(1)
-
-boost.mnist <- gbm(label~., data = pca.tr, 
-                     distribution = "multinomial",
-                     n.trees = 50, interaction.depth = 1,
-                     shrinkage = 0.1)
-summary(boost.mnist)
-```
-
-
-```{r boosted-pred}
-pred.boost <- predict(boost.mnist, newdata = pca.tst, n.trees = 50)
-pred.boost <- apply(pred.boost, 1, which.max) -1
-
-(conf.boost <- table(pred.boost, pca.tst$label))
-```
-
-```{r boosted-mcr}
-(sum(conf.boost) - sum(diag(conf.boost))) / 
-  sum(conf.boost)
-```
-
-###Using 5-fold CV
-
-**PCA Dataset**
+## Boosted trees 
 
 ```{r cache=TRUE}
 boost.pca.cv <- gbm(label~., data = pca.tr, 
@@ -238,12 +266,13 @@ boost.pca.cv <- gbm(label~., data = pca.tr,
                 shrinkage = 0.1,
                 cv.folds = 5
                 )
-summary(boost.pca.cv)
+print(boost.pca.cv)
 ```
 
 ```{r}
-print(boost.pca.cv)
+summary(boost.pca.cv)
 ```
+
 The best number of trees chosen by the boosted model using 5-fold CV on the PCA dataset is 411.
 
 ```{r}
@@ -259,39 +288,6 @@ pred.boost.cv <- apply(pred.boost.cv, 1, which.max) -1
 ```
 
 The misclassification rate is 9.81. 4-9 is still the most difficult pair to predict.
-
-
-**Original Dataset**
-
-```{r warning=FALSE, message=FALSE, cache=TRUE}
-boost.og.cv <- gbm(label~., data = train_df, 
-                distribution = "multinomial",
-                n.trees = 500, 
-                interaction.depth = 1,
-                shrinkage = 0.1,
-                cv.folds = 5)
-summary(boost.og.cv)
-```
-
-```{r}
-print(boost.og.cv)
-```
-
-The best number of trees chosen by the boosted model using 5-fold CV on the PCA dataset is 454.
-
-```{r}
-pred.boost.og.cv <- predict(boost.og.cv, newdata = test_df, n.trees=500)
-pred.boost.og.cv <- apply(pred.boost.og.cv, 1, which.max) -1
-
-(conf.boost <- table(pred.boost.og.cv, test_df$label))
-```
-
-```{r}
-(sum(conf.boost) - sum(diag(conf.boost))) / 
-  sum(conf.boost)
-```
-
-The misclassification rate is 8.38. 4-9 is still the most difficult pair to predict.
 
 
 ## Logistic Regression 
@@ -398,6 +394,7 @@ for (i in seq(nrow(ProbabilityOfEachValue)))
 The misclassification rate is 13.15%. 
 
 ## KNN 
+
 ```{r knn-fit, cache=TRUE}
 knn.pred <- knn(pca.tr[,-1], pca.tst[, -1], pca.tr[,1], k =5) # use CV the best k is 5 
 table(knn.pred, pca.tst[,1])
@@ -410,8 +407,8 @@ knn.MCR
 
 Clearly, with KNN method, the misclassifcation rate is 3.02%. 4-9 pair is the hardest one to predict.
 
-
 ## SVM
+
 ```{r svm-fit, cache=TRUE}
 pca.svm <- svm(label~., data = pca.tr, method="C-classification", kernal="radial", gamma= 0.1, cost=10)
 ```
