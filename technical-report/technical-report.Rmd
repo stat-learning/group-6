@@ -207,27 +207,78 @@ This will be the most extensive section and will include your results as well.
 
 - **Classification Tree (with pruning)**
 
+**A. Original dataset** 
+
 Our first pruned classification tree had limited success. Even without pruning, the optimal number of nodes was selected (n = 16), and the graph of error against size showed no clear elbow indicating optimal size. 
   
 <center>
 ![tree-og-pruning](images/tree-og-pruning.png)
 </center>
   
-The first tree could not classify the class 5 with only 16 splits (using the `tree` package), so we created a similar tree using another package (`rpart`) that successfully modeled all classes. The important pixels (at each split) seem to be near the center of the image (around 400). The misclassification rate is near 40%, as this is a rather weak model with a limited numer of splits.
+Looking at the tree plot, the important pixels (at each split) seem to be near the center of the image (around 400). The misclassification rate is near 40% (36.52%), as this is a rather weak model with a limited numer of splits.
   
 <center>
 ![tree-og-plot](images/tree-og-plot.png)
 </center>
 
+The first tree could not classify the class 5 with 16 splits (using the `tree` package), so we created a similar tree using another package (`rpart`) that successfully modeled all classes with only 14 splits. However, the misclassification rate for this model is slightly higher than the previous tree (38.04%), perhaps due to having fewer splits. 
+
 <center>
 ![tree-rpart](images/tree-rpart.png)
 </center>
 
-- **Random Forest (with bagging)**
+**B. PCA-reduced dataset**
 
-  The plot of error against n trees shows that the pixels had variable importance in predicting the random forest. This plot also shows that as long as there are 50-100 trees, error is rather low. The mean decrease accuracy chart shows that the random forest identified 7-13 most imortant pixels, as did the simple tree. 
+We ran the classification tree model on the PCA-reduced dataset. Again, the best size was naturally chosen (n = 13) by the tree. 
+
+<center>
+![tree-pca-pruning](images/tree-pca-pruning.png)
+</center>
+
+From the tree plot, we can see that the two biggest splits happen at PC2 and PC1. These splits divided the PCA plot with two principle components into four regions. We observed that the digit 1 almost occupied the entirety of one region, which led to our hypothesis that this would be the easiest class to classify. We also noticed two groupings of digits, 8-5-3-0 in the upper region and 4-9-7-6 in the lower region. We expected the misclassification rate to be higher for these digits since they are closer to one another. 
+
+<center>
+![tree-pca-plot](images/tree-pca-plot.png)
+</center>
+
+<center>
+![pca-split](images/pca-split.png)
+</center>
+
+The misclassification rate for the tree model on the PCA-reduced dataset closely mirrors the result on the original dataset at 36.43%.
+
+- **Random Forest**
+
+**A. Original dataset**
+
+We chose m=p/3 for the random forest.
+
+The plot of error against the number of trees shows that the pixels had variable importance in predicting the random forest. This plot also shows that as long as there are 50-100 trees, error is rather low. 
+  
+<center>
+![rf-og-error-vs-size](images/rf-og-error-vs-size.png)
+</center>
+  
+The mean decrease accuracy chart shows that the random forest identified 7-13 most important pixels, as did the simple tree. 
+
+<center>
+![rfv](images/rfv.png)
+</center>
+  
+**B. PCA-reduced dataset**
+  
+On the PCA-reduced dataset, we also obseved that the error rate gradually flatlined when the best number of trees exceeds 50. The random forest considered all 20 PCs to be important predictors, as none of which was scored 0 in both the mean decrease accuracy and the mean decrease gini plots. The random forest identified 7-9 principle components as more important than others, among which PC1, PC2 and PC4 are considered the most important.
+
+<center>
+![rf-error-vs-size.png](images/rf-error-vs-size.png)
+</center>
+
+<center>
+![rfv-pca](images/rfv-pca.png)
+</center>
   
   
+- **Bagged Trees**
   The bagged random forest (m = p) also identified a similar number of important pixels that seem to be near the center of the image. The error rate was the lowest when m=1 and the highest when m=p showing that there may be overfitting in the random forest, as it fairs better when less predictors are considered at each split.
   
 - **Boosted Trees**

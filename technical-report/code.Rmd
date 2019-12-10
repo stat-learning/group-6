@@ -129,6 +129,8 @@ pred.tree.og <- predict(t.og, newdata = test_df, type = "class")
 ```{r cache=TRUE}
 # Pruning
 t.og.pruned <- prune(t.og,  t.og$cptable[which.min(t.og$cptable[,"xerror"]),"CP"])
+plot(t.og.pruned)
+text(t.og.pruned, pretty = 0)
 ```
 
 ## Random Forest
