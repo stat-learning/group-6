@@ -196,7 +196,7 @@ Based on the PC graph above, we predicted that the 1-0 pair will be easily recog
 
 Our first pruned classification tree had limited success. Even without pruning, the optimal number of nodes was selected (n = 16) (Figure 6a), and the graph of error against size showed no clear elbow indicating optimal size. 
 
-```{r fig.cap="Pruning tree on both datasets (a) original dataset. (b) PCA-reduced dataset.", fig.align="center", echo=FALSE}
+```{r fig.cap="Pruning tree on both datasets (a) original dataset, and (b) PCA-reduced dataset.", fig.align="center", echo=FALSE}
 knitr::include_graphics('images/tree-prune-both.png', dpi = 150)
 ```
 
