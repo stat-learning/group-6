@@ -298,7 +298,7 @@ knitr::include_graphics('images/log.png', dpi = 150)
   
 [Caption] x-axis is $\lambda$ values, y-axis is multinomial deviance. 
 
-Clearly, as $\lambda$ increases, the model performs worse. The best model performance is observed at $\lambda$ = 0. 
+Clearly, as $\lambda$(The regularization parameter) increases, the deviance(actually in our case, it functions same as misclassification rate) is monotonically increasing, which implies that the model performs worse. The best model performance is observed at $\lambda$ = 0. 
 
 Our lowest misclassification rate is 7.89% (using Ridge) on the original dataset and 11.95% (using Lasso) for PCA-reduced dataset, respectively. This further confirms that we did not encounter the problem of overfitting in our logistic model.
 
