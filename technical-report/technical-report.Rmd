@@ -93,7 +93,7 @@ The data comes from the MNIST database of handwritten digits displayed in 28x28 
 
 The images are split into two different subsets, a training set containing 60,000 images and a test set containing 10,000 images. The two subsets are completely disjoint.
 
-**Data processing**: Since the pre-downloaded data is already well-formatted, minimal effort was spent on data processing. We performed two additional steps of data processing: 
+**Data processing** Since the pre-downloaded data is already well-formatted, minimal effort was spent on data processing. We performed two additional steps of data processing: 
 
 (1) Each 28x28 image was flattened into a single row of 784 pixels.
 
@@ -113,12 +113,10 @@ ggplot(train_df,aes(x = label)) + geom_histogram(stat = "count")
 knitr::include_graphics('images/freq.png', dpi = 200)
 ```
 
-
-As shown by the frequency graph above, each digit has a roughly equal amount of input images. The digits are well-separated.  
-
+As shown by the frequency graph (Figure 1), each digit has a roughly equal amount of input samples. This suggests that the response classes are well separated and evenly distributed.  
 
 We can see that the digits are centered and manipulated with 
-some anti-aliasing technique (Figure 2). Among six 1's below, different styles appear such as italic version and  formal version. We can say that the data set has generalization of digit styles. 
+some anti-aliasing technique (Figure 2). The dataset seems to encompass a variety of handwritting styles of digits. For example, among the six 1's images in Figure 2, different styles are displayed such as italic and formal. 
 
 ```{r fig.cap="First 25 images in the trainig dataset", fig.align="center", fig.width=4, fig.height=3, echo=FALSE}
 par(mfrow=c(5,5))
@@ -175,12 +173,12 @@ rownames(dist_df) <- label
 print(dist_df)
 ```
 
-From the summary table (Appendix ?), we can see that digit 1 has the lowest mean distance; this indicates that most people write it similarly. 2 has the highest mean distance, so people tend to write 2 in different ways. We also see that 6 and 9 have the highest distance variance, which suggests these two digits have the most variation in people's writing styles. 
+From the distance summary table (Appendix A), we can see that digit 1 has the lowest mean distance; this indicates that most people write it similarly. 2 has the highest mean distance, so people tend to write 2 in different ways. We also see that 6 and 9 have the highest distance variance, which suggests these two digits have the most variation in people's writing styles. 
 
 
 **Principal Component Analysis & Early Predictions**
 
-Since the MNIST dataset is large, we employed an unsupervised technique, Principal Component Analysis (PCA), to reduce the dimension of the dataset. We fit PCA on both the training and test dataset. From the scree plot (Figure 5b), we found that the first 20 principle components were able to capture around 90% of the variance in our data. 
+Since the MNIST dataset is large, we employed an unsupervised technique, Principal Component Analysis (PCA), to reduce the dimension of the dataset. We fit PCA on both the training and test dataset. From the scree plot (Figure 5b), we found that the first 20 principal components were able to capture around 90% of the variance in our data. 
 
 ```{r fig.cap="(a). PCA plot of the first two principal components. (b) Scree plot of the first 50 PCs.", fig.align="center", echo=FALSE}
 knitr::include_graphics('images/pca-scree.png', dpi = 150)
@@ -208,11 +206,11 @@ Looking at the tree plot (Figure 7), the important pixels (at each split) seem t
 knitr::include_graphics('images/tree-og-plot.png', dpi = 180)
 ```
 
-The first tree could not classify the class 5 with 16 splits (using the `tree` package), so we created a similar tree using another package (`rpart`) that successfully modeled all classes with only 14 splits (Appendix ?). However, the misclassification rate for this model is slightly higher than the previous tree (38.04%), perhaps due to having fewer splits. 
+The first tree could not classify the class 5 with 16 splits (using the `tree` package), so we created a similar tree using another package (`rpart`) that successfully modeled all classes with only 14 splits (Appendix B). However, the misclassification rate for this model is slightly higher than the previous tree (38.04%), perhaps due to having fewer splits. 
 
 On the PCA-reduced dataset, the best tree size was, again, naturally chosen (n = 13) by the model (Figure 6b). 
 
-From the tree plot (Figure 8), we can see that the two biggest splits happen at PC2 and PC1. These splits divided the PCA plot with two principle components into four regions. We observed that the digit 1 nearly occupies the entirety of one region, which led to our hypothesis that this would be the easiest class to classify. We also noticed two groupings of digits, 8-5-3-0 in the upper region and 4-9-7-6 in the lower region. We expected the misclassification rate to be higher for these digits since they are closer to one another (Figure 9). 
+From the tree plot (Figure 8), we can see that the two biggest splits happen at PC2 and PC1. These splits divided the PCA plot with two principal components into four regions. We observed that the digit 1 nearly occupies the entirety of one region, which led to our hypothesis that this would be the easiest class to classify. We also noticed two groupings of digits, 8-5-3-0 in the upper region and 4-9-7-6 in the lower region. We expected the misclassification rate to be higher for these digits since they are closer to one another (Figure 9). 
 
 ```{r fig.cap="Tree plot for the PCA-reduced dataset.", fig.align="center", echo=FALSE}
 knitr::include_graphics('images/tree-pca-plot.png', dpi = 150)
@@ -242,7 +240,7 @@ The mean decrease accuracy chart (Figure 11) shows that the random forest identi
 knitr::include_graphics('images/rfv.png', dpi = 150)
 ```
 
-For the PCA-reduced dataset, we also observed that the error rate gradually flatlines when the best number of trees exceeds 50. The random forest considered all 20 PCs to be important predictors, as none of which was scored 0 in both the mean decrease accuracy and the mean decrease gini plots. The random forest identified 7-9 principle components as more important than others, among which PC1, PC2 and PC4 are considered the most important (Figure 12).
+For the PCA-reduced dataset, we also observed that the error rates for all classes gradually flatline when the best number of trees exceeds 50. The random forest considered all 20 PCs to be important predictors, as none of which was scored 0 in both the mean decrease accuracy and the mean decrease gini plots. The random forest identified 7-9 principal components as more important than others, among which PC1, PC2 and PC4 are considered the most important (Figure 12).
 
 ```{r fig.cap="Variable importance plot by accuracy score and GINI index on the PCA-reduced dataset for the random forest.", fig.align="center", echo=FALSE}
 knitr::include_graphics('images/rfv-pca.png', dpi = 150)
@@ -274,13 +272,13 @@ As expected, on the PCA-reduced dataset, the boosted model considered all 20 PCs
 
 - **Multinomial Logistic Regression (with Ridge and Lasso)**
 
-We present two ways to perform Multinomial Logistic Regression. 
+We present two approaches to perform Multinomial Logistic Regression. 
 
 **(a) Using one-vs-all classification**: 
 
 We trained 10 different (binary) logistic regression classifiers, each recognizing one class of digits. For both the training and test dataset, we replaced the initial response variable (a nomial variable with 10 levels) with 10 dummy variables corresponding to the digits 0-9, each taking a value of (1) if the true label for the current digit was given, and (0) otherwise. We then assigned the new response variable to each of the classifier, and performed training using logistic regression with the `glm()` function.  
 
-Using the trained logistic classifiers, we computed the probability that the current digit belongs to a class. We picked the class for which the corresponding logistic regression classifier outputs the highest probability as the predicted class for each input. We compared the returned prediction vector against the true labels to find the model accuracy. The misclassification rate using this method is 13.15%.
+Using the trained logistic classifiers, we computed the probability that the current digit belongs to a class. For each input, we picked the class for which the corresponding logistic regression classifier outputs the highest probability as the predicted class. We compared the returned prediction vector with the true labels to find the model accuracy. The misclassification rate using this method is 13.15%.
 
 **(b) Using built-in package**:
 
@@ -314,7 +312,7 @@ As it took too long to perform cross-validation on the original dataset, we also
 
 One of the most computationally intensive models we experimented with in this project is Support Vector Machine (SVM). 
 
-In the simplest sense, SVM finds a hyperplane that best seperates two different classes. Using a kernel trick, SVM maps non-linear data points to a higher-dimensional space with arbitrary complexity. The model can then find a hyperplane that separates the samples in the transformed space. 
+In the simplest sense, SVM finds a hyperplane that best separates two different classes. Using a kernel trick, SVM maps non-linear data points to a higher-dimensional space with arbitrary complexity. The model can then find a hyperplane that separates the samples in the transformed space. 
 
 We can think of this as an automated way of creating polynomial terms or interaction terms in logistic regression. We chose the "radial" kernel (RBF) and achieved a **2.17%** misclassification rate, which is our best result so far. Below is the plot of the class regions for the SVM model using the first two PCs as the predictors. 
 
@@ -334,11 +332,11 @@ Unfortunately, we lacked the computing power to apply SVM on the original datase
 
 \begin{table}
 \centering
-\caption{}
+\caption{Model summary}
 \label{table-paramvalues}
 \begin{tabular}{ p{4cm} p{4cm} p{4cm} p{4cm}}
 \hline \\ [-1.5ex]
-Model & Original dataset & PCA-reduced dataset & Published results \\ [1ex]
+\textbf{Model} & \textbf{Original dataset} & \textbf{PCA-reduced dataset} & \textbf{Published results} \\ [1ex]
 \hline \\ [-1.5ex]
 Pruned Tree & 36.52 & 36.43  \\ [1ex]
 Random Forest & 5.05 \newline *4.29 (m=1) & 5.15  \\ [1ex]
