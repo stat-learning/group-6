@@ -41,6 +41,12 @@ General conclusions:
 ## Introduction
 **Overview of the setting of the data, existing theories/models (particularly if you are working in a descriptive/inferential setting), and your research questions.**
 
+The MNIST database of handwritten digits is a classic dataset for machine learning learners. Most existing
+models nowadays use different geometric properties of digits from complex feature selections. The best
+classifcation rate is produced by convolutional neural nets which is 99.77%. With so many well built models
+existing, can we build classifiers covered in this course to recognize what the digit (0-9) is in a given
+image and hopefully outperform several published models?
+
 ## The Data
 **Where does the data come from? How many observations? How many variables? What does each observation refer to (what is the observational unit)? What sorts of data processing was necessary to get the data in shape for analysis?**
 
