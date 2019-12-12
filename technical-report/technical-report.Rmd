@@ -29,7 +29,7 @@ library(imager)
 
 Overview:
 
-Research question: Can we build classifiers to recognize what the digit (0-9) is in a given image based on 60,000 training images?
+Research question: Can we build classifiers to recognize what digit (0-9) is in a given image based on 60,000 training images?
 
 Approach to analysis:
 
@@ -39,7 +39,7 @@ General conclusions:
 
 The MNIST database of handwritten digits is a classic dataset for machine learners. Most existing
 models nowadays use different geometric properties of digits from complex feature selection. The best
-classifcation rate is produced by convolutional neural nets, which is 99.77%. We woud like to build classifiers, using our knowledge from this course, to recognize what digit (0-9) is displayed in a given image. We are interested in seeing how our models would perform with respect to literature results.
+result is obtained with Convolutional Neural Nets (99.77%). Using our knowledge from this course, we want to build classifiers to recognize what digit (0-9) is displayed in a given image. We are interested in seeing how our models would perform with respect to literature results.
 
 ## The Data
 
@@ -113,7 +113,7 @@ knitr::include_graphics('images/freq.png', dpi = 200)
 
 As shown by the frequency graph (Figure 1), each digit has a roughly equal amount of input samples. This suggests that the response classes are well separated and evenly distributed.  
 
-We can see that the digits are centered and manipulated with 
+We observed the digits are centered and manipulated with 
 some anti-aliasing technique (Figure 2). The dataset seems to encompass a variety of handwritting styles of digits. For example, among the six 1's images in Figure 2, different styles are displayed such as italic and formal. 
 
 ```{r fig.cap="First 25 images in the training dataset", fig.align="center", fig.width=4, fig.height=3, echo=FALSE}
@@ -124,7 +124,7 @@ for (i in 1:25){
 }
 ```
 
-For each digit, we averaged over all pixels and obtained a mean image (Figure 3). 
+For each digit, we averaged over all pixels in corresponding input to obtain a mean image (Figure 3). 
 
 We computed the Euclidean distance from each input to its mean image. We plot the image-to-mean distance distribution for each digit. 
 
@@ -176,9 +176,9 @@ Since the MNIST dataset is large, we employed an unsupervised technique, Princip
 knitr::include_graphics('images/pca-scree.png', dpi = 150)
 ```
 
-From the PCA plot of the first two principal components (Figure 5a), we observed that the 1-0 pair is particularly well-separated, whereas there is considerable overlapping between 4 and 9. Based on the distribution of digits, we hypothesized that PC1 represents the denseness of central pixels for each digit. For example, an image displaying a "0" will have more pixels in the outer area (of a 28x28 box), while an image of a "1" will see more pixels aligned in the middle. Thus, the PC1 score for 0's will be greater than 1's, which explains the clear separation of the two classes across the PC1 axis. 
+From the PCA plot of the first two principal components (Figure 5a), we observed that the 1-0 pair is particularly well-separated, whereas there is considerable overlapping between 4 and 9. Based on the distribution of digits, we hypothesize that PC1 represents the denseness of central pixels for each digit. For example, an image displaying a "0" will have more pixels in the outer area (of a 28x28 box), while an image of a "1" will see more pixels aligned in the middle. Thus, the PC1 score for 0's will be greater than 1's, which explains the clear separation of the two classes across the PC1 axis. 
 
-We also hypothesized that PC2 is related to horizontal symmetry. For example, 3 and 1 are symmetric horizontally, which have larger PC2; 9 and 7 are less horizontally symmetric, which have lower PC2. 
+We also speculate that PC2 might be related to horizontal symmetry. For example, 3 and 1 are symmetric horizontally, which have larger PC2; 9 and 7 are less horizontally symmetric, which have lower PC2. 
 
 Based on the PC graph above, we predicted that the 1-0 pair would be easily recognizable and 4-9 might be harder to distinguish. 
 
@@ -206,7 +206,7 @@ The first tree could not classify the class 5 with 16 splits (using the `tree` p
 
 On the PCA-reduced dataset, the best tree size was, again, naturally chosen (n = 13) by the model (Figure 6b). 
 
-From the tree plot (Figure 8), we can see that the two biggest splits happen at PC2 and PC1. These splits divided the PCA plot with two principal components into four regions. We observed that the digit 1 nearly occupies the entirety of one region, which led to our hypothesis that this would be the easiest class to classify. We also noticed two groupings of digits, 8-5-3-0 in the upper region and 4-9-7-6 in the lower region. We expected the misclassification rate to be higher for these digits since they are closer to one another (Figure 9). 
+From the tree plot (Figure 8), we can see that the two biggest splits happen at PC2 and PC1. These splits divided the PCA plot with two principal components into four regions. We observed that digit 1 nearly occupies the entirety of one region, which led to our hypothesis that this would be the easiest class to classify. We also noticed two groupings of digits, 8-5-3-0 in the upper region and 4-9-7-6 in the lower region. We expected the misclassification rate to be higher for these digits since they are closer to one another (Figure 9). 
 
 ```{r fig.cap="Tree plot for the PCA-reduced dataset.", fig.align="center", echo=FALSE}
 knitr::include_graphics('images/tree-pca-plot.png', dpi = 150)
@@ -222,21 +222,19 @@ The misclassification rate for the tree model on the PCA-reduced dataset closely
 
 - **Random Forest**
 
-We chose $m=p/3$ for the random forest.
+We chose $m=p/3$ as the number of predictors considered at each split for the random forest.
 
-For the original dataset, the plot of error against size (Figure 10a) shows that as long as there are 50-100 trees, error is rather low. 
+On the original dataset, the plot of error against size (Figure 10a) shows that as long as there are 50-100 trees, error is rather low. The mean decrease accuracy chart (Figure 11) shows that the random forest identified 7-13 most important pixels, as did the simple tree. 
   
 ```{r fig.cap="Choosing size of the random forest on (a) original dataset and (b) PCA-reduced dataset. Each colored line represents the error rate of a class of digits 0-9. Errors flatline for any number of trees greater than 50 on both datasets.", fig.align="center", echo=FALSE}
 knitr::include_graphics('images/choose-rf-size.png', dpi = 300)
 ```
 
-The mean decrease accuracy chart (Figure 11) shows that the random forest identified 7-13 most important pixels, as did the simple tree. 
-
 ```{r fig.cap="Variable importance plot by accuracy score and GINI index on the original dataset for the random forest.", fig.align="center", echo=FALSE}
 knitr::include_graphics('images/rfv.png', dpi = 150)
 ```
 
-For the PCA-reduced dataset, we also observed that the error rates for all classes gradually flatline when the best number of trees exceeds 50. The random forest considered all 20 PCs to be important predictors, as none of which was scored 0 in both the mean decrease accuracy and the mean decrease gini plots. The random forest identified 7-9 principal components as more important than others, among which PC1, PC2 and PC4 are considered the most important (Figure 12).
+On the PCA-reduced dataset, we again observed that the error rates for all classes gradually flatline when the best number of trees exceeds 50. The random forest considered all 20 PCs to be important predictors, as none of which was scored 0 in both the mean decrease accuracy and the mean decrease gini plots. The random forest identified 7-9 principal components as more important than others, among which PC1, PC2 and PC4 were considered the most influential (Figure 12).
 
 ```{r fig.cap="Variable importance plot by accuracy score and GINI index on the PCA-reduced dataset for the random forest.", fig.align="center", echo=FALSE}
 knitr::include_graphics('images/rfv-pca.png', dpi = 150)
@@ -252,7 +250,7 @@ On the original dataset, the bagged trees ($m=p$) also identified a similar numb
 knitr::include_graphics('images/rfb.png', dpi = 150)
 ```
 
-On the PCA-reduced dataset, the bagged trees also consider all 20 PCs important predictors, among which  PC1, PC2, PC4 were the top ranked predictors. 
+On the PCA-reduced dataset, the bagged trees also considered all 20 PCs important predictors, among which  PC1, PC2, PC4 were the top ranked predictors. 
 
 ```{r fig.cap="Variable importance plot by accuracy score and GINI index on the PCA-reduced dataset for the bagged trees.", fig.align="center", echo=FALSE}
 knitr::include_graphics('images/baggingv-pca.png', dpi = 150)
@@ -280,23 +278,21 @@ We present two approaches to perform Multinomial Logistic Regression.
 
 **(a) Using one-vs-all classification**: 
 
-We trained 10 different (binary) logistic regression classifiers, each recognizing one class of digits. For both the training and test dataset, we replaced the initial response variable (a nomial variable with 10 levels) with 10 dummy variables corresponding to the digits 0-9, each taking a value of (1) if the true label for the current digit was given, and (0) otherwise. We then assigned the new response variable to each of the classifier, and performed training using logistic regression with the `glm()` function.  
+We trained 10 different (binary) logistic regression classifiers, each recognizing one class of digits. For both the training and test dataset, we replaced the initial response variable (a nomial variable with 10 levels) with 10 dummy variables corresponding to the digits 0-9, each taking a value of (1) if the true label for the current digit was given, and (0) otherwise. We then assigned the new response variable to each of the classifier, and performed training using logistic regression with the `glm` function.  
 
 Using the trained logistic classifiers, we computed the probability that the current digit belongs to a class. For each input, we picked the class for which the corresponding logistic regression classifier outputs the highest probability as the predicted class. We compared the returned prediction vector with the true labels to find the model accuracy. The misclassification rate using this method is 13.15%.
 
 **(b) Using built-in package**:
 
-We verified the above result using a built-in package called `nnet`, which supplies the `multinom()` function for multi-class logistic regression. The misclassification rate is 12.88%, which suggests that there is not much difference between the two methods.
+We verified the above result using a built-in package called `nnet`, which supplies the `multinom` function for multi-class logistic regression. The misclassification rate is 12.88%, which suggests that there is not much difference between the two methods.
  
 To prevent overfitting, we applied Ridge and Lasso regularization. 
 
-```{r fig.cap="Ridge and Lasso regularization.", fig.align="center", echo=FALSE}
+```{r fig.cap="Ridge and Lasso regularization plot for (a) original dataset (upper half), and (b) PCA-reduced dataset (lower half). x-axis displays regularization terms. y-axis represents multinomial deviance.", fig.align="center", echo=FALSE}
 knitr::include_graphics('images/log.png', dpi = 150)
 ```
-  
-[Caption] x-axis is $\lambda$ values, y-axis is multinomial deviance. 
 
-Clearly, as $\lambda$(The regularization parameter) increases, the deviance(actually in our case, it functions same as misclassification rate) is monotonically increasing, which implies that the model performs worse. The best model performance is observed at $\lambda$ = 0. 
+From the regularization terms vs. deviance plot (Figure 16), as $\lambda$ (the regularization parameter) increases, the deviance (in our case, the deviance functions the same as the misclassification rate as a metric to measure model performance) is monotonically increasing, which implies that the model performs worse. The best model performance is observed at $\lambda$ = 0. 
 
 Our lowest misclassification rate is 7.89% (using Ridge) on the original dataset and 11.95% (using Lasso) for PCA-reduced dataset, respectively. This further confirms that we did not encounter the problem of overfitting in our logistic model.
 
@@ -318,13 +314,13 @@ One of the most computationally intensive models we experimented with in this pr
 
 In the simplest sense, SVM finds a hyperplane that best separates two different classes. Using a kernel trick, SVM maps non-linear data points to a higher-dimensional space with arbitrary complexity. The model can then find a hyperplane that separates the samples in the transformed space. 
 
-We can think of this as an automated way of creating polynomial terms and interaction terms in logistic regression. We chose the "radial" kernel (RBF or Gaussian) and achieved a **2.17%** misclassification rate, which is our best result so far. Below is the plot of the class regions for the SVM model using the first two PCs as the predictors. 
+We can think of this as an automated way of creating polynomial terms and interaction terms in logistic regression. We chose the "radial" kernel (RBF or Gaussian) and achieved a **2.17%** misclassification rate, which is our best result so far.  
 
-```{r fig.cap="Visualization of SVM.", fig.align="center", echo=FALSE}
+```{r fig.cap="SVM plot of decision boundaries using the first two PCs as the predictors. Support vectors are shown as 'X'. Data points are shown as 'O'. True classes are highlighted in symbol color. Predicted class regions are highlighted with colored backgrounds.", fig.align="center", echo=FALSE}
 knitr::include_graphics('images/svm.png', dpi = 120)
 ```
 
-The built-in `plot()` method did not give us a clear visualization with 10 different classes and 20 predictors, so we plot the decision boundary with only 2 predictors. We could plot this model with other predictors, which might generate different decision boundaries, but that would be redundant to illustrate the model. If PC1 and PC2 are adequate to train a classifier with good predictive power and we train our model with PC1 and PC2, we suppose the plot above will have similar pattern as the PCA plot we get in earlier section. 
+As the built-in `plot` method did not give us a clear visualization of the decision boundaries with 10 different classes and 20 predictors, we plot the decision boundary with only 2 predictors PC1 and PC2 (Figure 18). Given that PC1 and PC2 are adequate to train a classifier with sufficient predictive power, we suppose the plot above will have similar pattern as the earlier PCA plot. 
 
 Unfortunately, we lacked the computing power to apply SVM on the original dataset, so we had to give up on this model eventually. However, we are positive that with the right choosing of kernel and tuned parameters, the SVM will generate a better result than 2.17% on the original dataset. 
 
@@ -351,17 +347,19 @@ SVM & TBD & \textbf{2.17} & 1.4 \\ [1ex]
 \end{tabular}
 \end{table}
 
-Based on the confusion matrices from prediction results across models (Appendix C), we veried our assumptions that 4-9 is the most difficult pair to separate, whereas 1 was consistently the easiest class to predict. Other difficult pairs we found were 8-5, 5-3, 5-0. We found little evidence of overfitting in our models for both the original and dimension-reduced datasets, as models with greater complexity tend to perform better. We noticed some possibility of overfitting on our original dataset, particularly with the random forest and bagged trees: as the number of predictors increased, the model accuracy decreased. We did not encounter overfitting problem in the dimension-reduced dataset. 
+Based on the confusion matrix from prediction results, we verified our early predictions that 4-9 is the most difficult pair to separate across models, whereas 1 was consistently the easiest class to predict. Other difficult pairs we found were 8-5, 5-3, 5-0. We found little evidence of overfitting in our models for both the original and dimension-reduced datasets, as models with greater complexity tend to perform better. We noticed some possibility of overfitting on our original dataset, particularly with the random forest and bagged trees, in that as the number of predictors increased, the model accuracy decreased. We did not encounter overfitting problem in the dimension-reduced dataset. 
 
-Overall, the models trained on the dimension-reduced dataset performed on par with those trained on the whole dataset, suggesting that PCA with only 20 principal components captured well most of the existing structure in our data. On the original dataset, we noticed that the center pixels were among the most significant predictors in our models, suggesting that the central area of the image contains the most information. On the reduced dataset, we also found that PC1, PC2, and PC4 were consistently the top ranked predictors across models among the selected 20 principal components. While we are not exactly sure what the principal components actually represent, we hypothesized that PC1 and PC2 capture the center alignment and horizonal symmetry of the digits, respectively.
+Overall, the models trained on the dimension-reduced dataset performed on par with those trained on the whole dataset, suggesting that PCA with only 20 principal components captured well most of the existing structure in our data. On the original dataset, we noticed that the central pixels were among the most significant predictors in our models, suggesting that the center of the image is the area containing the most information. On the reduced dataset, we also found that PC1, PC2, and PC4 were consistently the top ranked predictors across models among the selected 20 principal components. While we are not exactly sure what the principal components actually represent, we hypothesize that PC1 and PC2 capture the center distribution and horizonal symmetry of the digits, respectively.
 
-Our best model so far is a RBF (Gaussian) kernel SVM. Compared with reported results on the website of the MNIST database, we found our models gave competitive performance with published models, which suggests that our finetuning of the parameters was effective. 
+In general, our non-parametric models outperformed parametric ones, with the exception of the simple tree. Our best model so far is a RBF (Gaussian) kernel SVM. Compared with reported results on the MNIST database website, we found our models gave competitive performance with published models, which suggests that our finetuning of the parameters was effective. 
 
-Since the data had been cleaned and carefully preprocessed for us before our modelling process, future work might want to measure the effect of data preprocessing on model performance with unprocessed images. We also wish to test our claims on what the principal components might represent, perhaps with advanced visualization techniques. As we had little luck training on the more computationally intensive models on this dataset due to limited computing power at hand, we hope to overcome this limitation in the future, perhaps with more computing resources or advanced techniques.  
+Since the data had been cleaned and carefully preprocessed for us before we began the modelling process, future work might want to measure the effect of data preprocessing on model performance with unprocessed images. We also wish to test our claims on what the principal components might represent, perhaps with advanced visualization techniques. As we had little luck training on the more computationally intensive models on this dataset due to limited computing power at hand, we hope to overcome this limitation in the future, perhaps with more computing resources or advanced techniques. We might also want to explore different choosing of kernels for the SVM model, and how that might affect our current best result. 
 
 ## References
 
 Y. LeCun, L. Bottou, Y. Bengio, and P. Haffner. "Gradient-based learning applied to document recognition." Proceedings of the IEEE, 86(11):2278-2324, November 1998. [Online Version.](http://yann.lecun.com/exdb/mnist/)
+
+J. Hou. (February 7, 2019). "Load the MNIST Dataset". Retrieved from https://rpubs.com/JanpuHou/465274.
 
 \pagebreak
 
@@ -374,18 +372,12 @@ rownames(dist_df) <- label
 print(dist_df)
 ```
 
-\pagebreak 
+\pagebreak
 
 ##Appendix B
 
-```{r fig.cap="Tree plot on the original dataset from the `rpart` package.", fig.align="center", echo=FALSE}
-knitr::include_graphics('images/tree-rpart.png', dpi = 150)
+```{r fig.align="center", echo=FALSE, out.extra=''}
+knitr::include_graphics('images/tree-rpart.png', dpi = 180)
 ```
 
-
-\pagebreak
-
-##Appendix C
-
-(confusion matrix for each model)
 
