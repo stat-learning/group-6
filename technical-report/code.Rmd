@@ -66,6 +66,9 @@ train_df$label <- as.factor(train_df$label)
 test_df$label <- as.factor(test_df$label)
 ```
 
+The code in this file is split into two sections: 
+(1) Modelling resutls on the original dataset,
+(2) Modelling results on the PCA-reduced dataset.
 
 # Training on the original dataset
 
@@ -444,11 +447,11 @@ boost.pca.cv <- gbm(label~., data = pca.tr,
                 shrinkage = 0.1,
                 cv.folds = 5
                 )
-print(boost.cv)
+print(boost.pca.cv)
 ```
 
 ```{r}
-summary(boost.cv)
+summary(boost.pca.cv)
 ```
 
 The best number of trees chosen by the boosted model using 5-fold CV on the PCA dataset is 411.
@@ -617,12 +620,6 @@ plot(raw_log_lasso)
 plot(raw_log_ridge)	
 plot(pca_log_lasso)	
 plot(pca_log_ridge)
-```
-
-```{r}
-par(mfrow=c(1,2))	
-plot(raw_log_lasso)	
-plot(raw_log_ridge)	
 ```
 
 
