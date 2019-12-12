@@ -69,14 +69,14 @@ load_label_file <- function(filename) {
     y
 }
 
-train <- load_image_file("data/train-images-idx3-ubyte")
-test <- load_image_file("data/t10k-images-idx3-ubyte")
+train <- load_image_file("../data/train-images-idx3-ubyte")
+test <- load_image_file("../data/t10k-images-idx3-ubyte")
 # rescale pixels for computational reason
 train$x <- train$x/255
 test$x <- test$x/255
 
-train$y <- load_label_file("data/train-labels-idx1-ubyte")
-test$y <- load_label_file("data/t10k-labels-idx1-ubyte")  
+train$y <- load_label_file("../data/train-labels-idx1-ubyte")
+test$y <- load_label_file("../data/t10k-labels-idx1-ubyte")  
 
 train_df <- data.frame(train$y, train$x) %>%
   rename(label = train.y)
