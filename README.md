@@ -1,4 +1,4 @@
-# Digits recognition 
+# Digit recognition 
 
 **Authors**: Hien Nguyen, Yilin Li, Lyn Peterson
 
