@@ -28,13 +28,13 @@ library(imager)
 
 This report attempts to model handwritten digit recognition based on 60,000 training images from the MNIST dataset, using Principal Component Analysis (PCA), Classification Trees, Random Forests, Bagging, Boosted Trees, Logistic Regression, K Nearest Neighbors (KNN), and Support Vector Machine (SVM). Each model was repeated on both the original dataset and a PCA dataset which had undergone dimension reduction, as the dataset is large and the first 20 principal components were shown to capture 90% of the data variance. Cross validation was performed for each model and model accuracy was scored using the misclassification rate.
 
-The classification trees faired relatively poorly given the limited number of splits. The boosted and bagged trees faired far better, but there was some observed overfitting in the original data bagged trees, and the model performed best when considering the least number of predictors at each split. The boosted trees and the logistic regressions performed similarly for the original data, but the PCA data regressions were slightly worse than the PCA data boosted tree. KNN and SVM had the lowest misclassification rates of all the models for both the original and PCA data sets. We verified our early predictions that 4-9 is the most difficult pair to separate across models, whereas 1 was consistently the easiest class to predict. All models tended to find that pixels or principle components near the center of the image were the most important in prediction. Our models in general proved to perform on par with published results. 
+The classification trees faired relatively poorly given the limited number of splits. The boosted and bagged trees faired far better, but there was some observed overfitting in the original data bagged trees, and the model performed best when considering the least number of predictors at each split. The boosted trees and the logistic regressions performed similarly for the original data, but the PCA data regressions were slightly worse than the PCA data boosted tree. KNN and SVM had the lowest misclassification rates of all the models for both the original and PCA datasets. We verified our predictions that 4-9 is the most difficult pair to separate across models, whereas 1 was consistently the easiest class to predict. All models tended to find that pixels or principle components near the center of the image were the most important in prediction. Our models in general proved to perform on par with published results. 
 
 ## Introduction
 
 The MNIST database of handwritten digits is a classic dataset for machine learners. Most existing
 models nowadays use different geometric properties of digits from complex feature selection. The best
-result in literature is obtained with Convolutional Neural Nets (99.77%). Using our knowledge from this course, we want to build classifiers to recognize what digit (0-9) is displayed in a given image. We are interested in seeing how our models would perform with respect to literature results.
+result in literature was obtained with Convolutional Neural Network (99.77%). Using our knowledge from this course, we want to build classifiers to recognize what digit (0-9) is displayed in a given image. We are interested in seeing how our models would perform with respect to literature results.
 
 ## The Data
 
@@ -119,9 +119,7 @@ for (i in 1:25){
 }
 ```
 
-For each digit, we averaged over all pixels in corresponding input to obtain a mean image (Figure 3). 
-
-We computed the Euclidean distance from each input to its mean image. We plot the sample-to-mean distance distribution for each digit. 
+To survey patterns in handwriting styles, we averaged over all pixels to obtain a mean image for each digit (Figure 4). We then computed the Euclidean distance from each input to its mean image. We plot the sample-to-mean distance distribution for each digit (Figure 3). 
 
 ```{r data-preprocessing, cache=TRUE, fig.cap="Density distribution of the Euclidean distances from each input image to its mean form", fig.align="center", echo=FALSE}
 # for each digit class, calculate the mean digit, mean distance from the mean digit and 
@@ -160,7 +158,7 @@ for (i in 1:10){
 ```
 
 
-From the distance summary table (Appendix A), we can see that digit 1 has the lowest mean distance; this indicates that most people write it similarly. 2 has the highest mean distance, so people tend to write 2 in different ways. We also see that 6 and 9 have the highest distance variance, which suggests these two digits have the most variation in people's writing styles. 
+From the distance summary table (Appendix A), we can see that digit 1 has the lowest mean distance; this indicates that most people write it similarly. Digit 2 has the highest mean distance, so people tend to write 2 in different ways. We also see that 6 and 9 have the highest distance variance, which suggests these two digits have the most variation in people's writing styles. 
 
 
 **Principal Component Analysis and Early Predictions**
@@ -191,7 +189,7 @@ Our first pruned classification tree had limited success. Even without pruning, 
 knitr::include_graphics('images/tree-prune-both.png', dpi = 150)
 ```
 
-The tree plot shows that the important pixels (at each split) seem to be near the center of the image (around 400) (Figure 7). The misclassification rate is near 40% (36.52%), as this is a rather weak model with a limited numer of splits.
+The tree plot shows that the important pixels (at each split) seem to be near the center of the image (around 400) (Figure 7). The misclassification rate is near 40% (36.52%), as this is a rather weak model with a limited number of splits.
 
 ```{r fig.cap="Tree plot for the original dataset", fig.align="center", echo=FALSE}
 knitr::include_graphics('images/tree-og-plot.png', dpi = 180)
@@ -229,7 +227,7 @@ knitr::include_graphics('images/choose-rf-size.png', dpi = 300)
 knitr::include_graphics('images/rfv.png', dpi = 150)
 ```
 
-On the PCA-reduced dataset, we again observed that the error rates for all classes gradually flatline when the best number of trees exceeds 50. The random forest considered all 20 PCs to be important predictors, as none of which was scored 0 in both the mean decrease accuracy and the mean decrease gini plots. The random forest identified 7-9 principal components as more important than others, among which PC1, PC2 and PC4 were considered the most influential (Figure 12).
+On the PCA-reduced dataset, we again observed that the error rates for all classes gradually flatline when the best number of trees exceeds 50. The random forest considered all 20 PCs to be important predictors, as none of which was scored 0 in both the mean decrease accuracy and the mean decrease GINI plots. The random forest identified 7-9 principal components as more important than others, among which PC1, PC2 and PC4 were considered the most influential (Figure 12).
 
 ```{r fig.cap="Variable importance plot by accuracy score and GINI index on the PCA-reduced dataset for the random forest.", fig.align="center", echo=FALSE}
 knitr::include_graphics('images/rfv-pca.png', dpi = 150)
@@ -239,7 +237,7 @@ knitr::include_graphics('images/rfv-pca.png', dpi = 150)
 
 - **Bagged Trees**
 
-On the original dataset, the bagged trees ($m=p$) also identified a similar number of important pixels that seem to be near the center of the image. The error rate was the lowest when $m$=1 and the highest when $m=p$, suggesting that there might be some overfitting in the random forest, as it fairs better when fewer predictors are considered at each split.
+On the original dataset, the bagged trees ($m=p$) also identified a similar number of important pixels that seem to be near the center of the image. The error rate was the lowest when $m$=1 and the highest when $m=p$, suggesting that there might be some overfitting in the random forest, as it faired better when fewer predictors were considered at each split.
 
 ```{r fig.cap="Variable importance plot by accuracy score and GINI index on the original dataset for the bagged trees.", fig.align="center", echo=FALSE}
 knitr::include_graphics('images/rfb.png', dpi = 150)
@@ -344,11 +342,11 @@ SVM & TBD & \textbf{2.17} & 1.4 \\ [1ex]
 
 Based on the confusion matrix from prediction results, we verified our early predictions that 4-9 is the most difficult pair to separate across models, whereas 1 was consistently the easiest class to predict. Other difficult pairs we found were 8-5, 5-3, 5-0. We found little evidence of overfitting in our models for both the original and dimension-reduced datasets, as models with greater complexity tend to perform better. We noticed some possibility of overfitting on our original dataset, particularly with the random forest and bagged trees, in that as the number of predictors increased, the model accuracy decreased. We did not encounter overfitting problem in the dimension-reduced dataset. 
 
-Overall, the models trained on the dimension-reduced dataset performed on par with those trained on the whole dataset, suggesting that PCA with only 20 principal components captured well most of the existing structure in our data. On the original dataset, we noticed that the central pixels were among the most significant predictors in our models, suggesting that the center of the image is the area containing the most information. On the reduced dataset, we also found that PC1, PC2, and PC4 were consistently the top ranked predictors across models among the selected 20 principal components. While we are not exactly sure what the principal components actually represent, we hypothesize that PC1 and PC2 capture the center distribution and horizonal symmetry of the digits, respectively.
+Overall, the models trained on the dimension-reduced dataset performed on par with those trained on the whole dataset, suggesting that PCA with only 20 principal components captured well most of the existing structure in our data. On the original dataset, we noticed that the central pixels were among the most significant predictors in our models, suggesting that the center of the image is the area containing the most information. On the reduced dataset, we also found that PC1, PC2, and PC4 were consistently the top ranked predictors across models among the selected 20 principal components. While we are not exactly sure what the principal components actually represent, we speculate that PC1 and PC2 capture the center distribution and horizonal symmetry of the digits, respectively.
 
 In general, our non-parametric models outperformed parametric ones, with the exception of the simple tree. Our best model so far is a RBF (Gaussian) kernel SVM. Compared with reported results on the MNIST database website, we found our models gave competitive performance with published models, which suggests that our finetuning of the parameters was effective. 
 
-Since the data had been cleaned and carefully preprocessed for us before we began the modelling process, future work might want to measure the effect of data preprocessing on model performance with unprocessed images. We also wish to test our claims on what the principal components might represent, perhaps with advanced visualization techniques. As we had little luck training on the more computationally intensive models on this dataset due to limited computing power at hand, we hope to overcome this limitation in the future, perhaps with more computing resources or advanced techniques. We might also want to explore different choosing of kernels for the SVM model, and how that might affect our current best result. 
+Since the data had been cleaned and carefully preprocessed for us before we began the modelling process, future work might want to measure the effect of data preprocessing on model performance with unprocessed images. We also wish to test our claims on what the principal components might represent, perhaps with advanced visualization techniques. As we had little luck training on the more computationally intensive models on this dataset due to limited computing power at hand, we hope to overcome this limitation in the future, perhaps with more computing resources or advanced techniques. We might also want to explore different choosing of kernels for the SVM model, and how that might affect our current result. 
 
 ## References
 
