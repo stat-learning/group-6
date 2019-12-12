@@ -16,7 +16,6 @@ library(randomForest)
 library(class)
 library(e1071)  
 library(tidyverse)
-library(caret)
 library(nnet)
 library(glmnet)
 library(doParallel)
@@ -27,13 +26,13 @@ library(imager)
 ## Abstract
 **A brief overview of the area that you’ll be investigating, the research question(s) of interest, your approach to analysis, and the general conclusions.**
 
-Overview:
+Overview: This report attempts to model handwritten digit recognition based on 60,000 training images, using PCA, classification trees, random forests, bagging, logistic regression, KNN, and SVM. 
 
-Research question: Can we build classifiers to recognize what digit (0-9) is in a given image based on 60,000 training images?
+Research question: Can we build classifiers to recognize what the digit (0-9) is in a given image based on 60,000 training images?
 
-Approach to analysis:
+Approach to analysis: Each of the above models were repeated using both the original data set and a PCA data set which had undergone dimension reduction, as the data set is large and the first 20 PC's were shown to capture 90% of the variance. Cross validation was performed for each model.
 
-General conclusions:
+General conclusions: The classification trees faired relatively poorly (MSR around 40%) given the limited number of splits. The boosted and bagged trees faired far better (MSR 4-6%), but there was overfitting in the original data bagged tree, and it performed best when considering the least number of predictors at each split. The boosted trees and the logistic regressions performed similarly for the original data (MSR 8%), but the PCA regressions were slightly worse than the PCA boosted tree (12-15% and 10% respectively). KNN and SVM had the lowest MSR's, 2-3%. of all the models for both the original and PCA data sets. We verified our early predictions that 4-9 is the most difficult pair to separate across models, whereas 1 was consistently the easiest class to predict. All models tended to find that pixels or PCs near the center of the image were the most important in prediction. 
 
 ## Introduction
 
