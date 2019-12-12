@@ -24,9 +24,6 @@ library(rpart)
 library(imager)
 ```
 
-
-Your technical report should be an .Rmd file that contains the following sections. So as not to make the compilation (knitting) of the document not take too long, consider setting cache = TRUE in the curly braces of any R chunk with substantial computing. Please knit both to pdf and github document (.md).
-
 ## Abstract
 **A brief overview of the area that you’ll be investigating, the research question(s) of interest, your approach to analysis, and the general conclusions.**
 
@@ -39,10 +36,12 @@ Approach to analysis:
 General conclusions:
 
 ## Introduction
-**Overview of the setting of the data, existing theories/models (particularly if you are working in a descriptive/inferential setting), and your research questions.**
+
+The MNIST database of handwritten digits is a classic dataset for machine learners. Most existing
+models nowadays use different geometric properties of digits from complex feature selection. The best
+classifcation rate is produced by convolutional neural nets, which is 99.77%. We woud like to build classifiers, using our knowledge from this course, to recognize what digit (0-9) is displayed in a given image. We are interested in seeing how our models would perform with respect to literature results.
 
 ## The Data
-**Where does the data come from? How many observations? How many variables? What does each observation refer to (what is the observational unit)? What sorts of data processing was necessary to get the data in shape for analysis?**
 
 ```{r loading-data, cache=TRUE, include=FALSE}
 # This part read idx files and store image data into train$x and 
@@ -101,7 +100,6 @@ The images are split into two different subsets, a training set containing 60,00
 
 
 ## Exploratory Data Analysis
-**Explore the structure of the data through graphics. Here you can utilize both traditional plots as well as methods from unsupervised learning. Understanding the distribution of your response is particular important, but also investigate bivariate and higher-order relationships that you expect to be particular interesting.**
 
 **A closer look at the data**
 
@@ -118,7 +116,7 @@ As shown by the frequency graph (Figure 1), each digit has a roughly equal amoun
 We can see that the digits are centered and manipulated with 
 some anti-aliasing technique (Figure 2). The dataset seems to encompass a variety of handwritting styles of digits. For example, among the six 1's images in Figure 2, different styles are displayed such as italic and formal. 
 
-```{r fig.cap="First 25 images in the trainig dataset", fig.align="center", fig.width=4, fig.height=3, echo=FALSE}
+```{r fig.cap="First 25 images in the training dataset", fig.align="center", fig.width=4, fig.height=3, echo=FALSE}
 par(mfrow=c(5,5))
 par(mar=c(0.1,0.1,0.1,0.1))
 for (i in 1:25){
@@ -166,12 +164,6 @@ for (i in 1:10){
 }
 ```
 
-```{r include=FALSE}
-dist_df <- data.frame(x = distance_mean, y = distance_var)
-colnames(dist_df) <- c("mean", "var")
-rownames(dist_df) <- label
-print(dist_df)
-```
 
 From the distance summary table (Appendix A), we can see that digit 1 has the lowest mean distance; this indicates that most people write it similarly. 2 has the highest mean distance, so people tend to write 2 in different ways. We also see that 6 and 9 have the highest distance variance, which suggests these two digits have the most variation in people's writing styles. 
 
@@ -188,9 +180,13 @@ From the PCA plot of the first two principal components (Figure 5a), we observed
 
 We also hypothesized that PC2 is related to horizontal symmetry. For example, 3 and 1 are symmetric horizontally, which have larger PC2; 9 and 7 are less horizontally symmetric, which have lower PC2. 
 
-Based on the PC graph above, we predicted that the 1-0 pair will be easily recognized and 4-9 might be hard to distinguish. 
+Based on the PC graph above, we predicted that the 1-0 pair would be easily recognizable and 4-9 might be harder to distinguish. 
 
 ## Modeling
+
+We performed modelling on both the original training dataset (60,000 samples with 784 predictors) and the dimension-reduced dataset using PCA (60,000 samples with 20 predictors). We experimented with both parametric (Logistic Regression) and non-parametric models (Trees, KNN, SVM). All of our models are cross-validated. We compared the model performance on both datasets as well as with published results, and summarized the resutls (Table 1).
+
+For each model, we looked at the confusion matrix to find pairs that were particularly interesting (easy or difficult to predict). We measured the model accurary based on the misclassification rate, that is, the percent of wrong predictions made by the model. 
 
 - **Classification Tree** 
 
@@ -262,13 +258,21 @@ On the PCA-reduced dataset, the bagged trees also consider all 20 PCs important 
 knitr::include_graphics('images/baggingv-pca.png', dpi = 150)
 ```
   
+\pagebreak
+
 - **Boosted Trees**
 
 We cross-validated the boosted model on both datasets with 5-fold CV to pick the best number of trees. As a result, 454 trees were chosen for the original dataset and 411 for the PCA-reduced dataset.  
 
-On the original dataset, 560 out of 784 predictors had non-zero influence, as scored by the boosted model. 
-As expected, on the PCA-reduced dataset, the boosted model considered all 20 PCs statistically significant. The variable importance table (Appendix C) show that PC1, PC2 and PC4 are again the top predictors. 
+On the original dataset, 560 out of 784 predictors had non-zero influence, as scored by the boosted model (Figure 15a).
 
+On the PCA-reduced dataset, the boosted model considered 19 out of 20 PCs to be statistically significant. The variable importance table shows that PC1, PC2 and PC4 were again the top predictors (Figure 15b). 
+
+```{r fig.cap="Relative influence plot by boosting on the (a) original dataset, and (b) PCA-reduced dataset.", fig.align="center", echo=FALSE}
+knitr::include_graphics('images/boost.PNG', dpi = 150)
+```
+
+\pagebreak
 
 - **Multinomial Logistic Regression (with Ridge and Lasso)**
 
@@ -314,7 +318,7 @@ One of the most computationally intensive models we experimented with in this pr
 
 In the simplest sense, SVM finds a hyperplane that best separates two different classes. Using a kernel trick, SVM maps non-linear data points to a higher-dimensional space with arbitrary complexity. The model can then find a hyperplane that separates the samples in the transformed space. 
 
-We can think of this as an automated way of creating polynomial terms or interaction terms in logistic regression. We chose the "radial" kernel (RBF) and achieved a **2.17%** misclassification rate, which is our best result so far. Below is the plot of the class regions for the SVM model using the first two PCs as the predictors. 
+We can think of this as an automated way of creating polynomial terms or interaction terms in logistic regression. We chose the "radial" kernel (RBF or Gaussian) and achieved a **2.17%** test error rate, which is our best result so far. Below is the plot of the class regions for the SVM model using the first two PCs as the predictors. 
 
 ```{r fig.cap="Visualization of SVM.", fig.align="center", echo=FALSE}
 knitr::include_graphics('images/svm.png', dpi = 120)
@@ -327,8 +331,6 @@ Unfortunately, we lacked the computing power to apply SVM on the original datase
 \pagebreak
 
 ## Discussion
-**Review the results generated above and sythensize them in the context from which the data originated. What do the results tell your about your original research question? Are there any weaknesses that you see in your analysis? What additional questions would you explore next?**
-
 
 \begin{table}
 \centering
@@ -349,14 +351,41 @@ SVM & TBD & \textbf{2.17} & 1.4 \\ [1ex]
 \end{tabular}
 \end{table}
 
-- 4-9 is the most difficult pair to predict across models 
-- No overfitting with PCA, but some with raw data 
-- Best model
-- Compare with published models
+Based on the confusion matrices from prediction results across models (Appendix C), we veried our assumptions that 4-9 is the most difficult pair to separate, whereas 1 was consistently the easiest class to predict. Other difficult pairs we found were 8-5, 5-3, 5-0. We found little evidence of overfitting in our models for both the original and dimension-reduced datasets, as models with greater complexity tend to perform better. We noticed some possibility of overfitting on our original dataset, particularly with the random forest and bagged trees: as the number of predictors increased, the model accuracy decreased. We did not encounter overfitting problem in the dimension-reduced dataset. 
 
+Overall, the models trained on the dimension-reduced dataset performed on par with those trained on the whole dataset, suggesting that PCA with only 20 principal components captured well most of the existing structure in our data. On the original dataset, we noticed that the center pixels were among the most significant predictors in our models, suggesting that the central area of the image contains the most information. On the reduced dataset, we also found that PC1, PC2, and PC4 were consistently the top ranked predictors across models among the selected 20 principal components. While we are not exactly sure what the principal components actually represent, we hypothesized that PC1 and PC2 capture the center alignment and horizonal symmetry of the digits, respectively.
+
+Our best model so far is a RBF (Gaussian) kernel SVM. Compared with reported results on the website of the MNIST database, we found our models gave competitive performance with published models, which suggests that our finetuning of the parameters was effective. 
+
+Since the data had been cleaned and carefully preprocessed for us before our modelling process, future work might want to measure the effect of data preprocessing on model performance with unprocessed images. We also wish to test our claims on what the principal components might represent, perhaps with advanced visualization techniques. As we had little luck training on the more computationally intensive models on this dataset due to limited computing power at hand, we hope to overcome this limitation in the future, perhaps with more computing resources or advanced techniques.  
 
 ## References
-**At minimum, this will contain the full citation for your data set. If you reference existing analyses, they should be cited here as well.**
 
 Y. LeCun, L. Bottou, Y. Bengio, and P. Haffner. "Gradient-based learning applied to document recognition." Proceedings of the IEEE, 86(11):2278-2324, November 1998. [Online Version.](http://yann.lecun.com/exdb/mnist/)
+
+\pagebreak
+
+##Appendix A 
+
+```{r echo=FALSE}
+dist_df <- data.frame(x = distance_mean, y = distance_var)
+colnames(dist_df) <- c("mean", "var")
+rownames(dist_df) <- label
+print(dist_df)
+```
+
+\pagebreak 
+
+##Appendix B
+
+```{r fig.cap="Tree plot on the original dataset from the `rpart` package.", fig.align="center", echo=FALSE}
+knitr::include_graphics('images/tree-rpart.png', dpi = 150)
+```
+
+
+\pagebreak
+
+##Appendix C
+
+(confusion matrix for each model)
 
