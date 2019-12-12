@@ -296,7 +296,7 @@ knitr::include_graphics('images/log.png', dpi = 150)
   
 [Caption] x-axis is $\lambda$ values, y-axis is multinomial deviance. 
 
-Clearly, as $\lambda$ increases, the model performs worse. The best model performance is observed at $\lambda$ = 0. 
+Clearly, as $\lambda$(The regularization parameter) increases, the deviance(actually in our case, it functions same as misclassification rate) is monotonically increasing, which implies that the model performs worse. The best model performance is observed at $\lambda$ = 0. 
 
 Our lowest misclassification rate is 7.89% (using Ridge) on the original dataset and 11.95% (using Lasso) for PCA-reduced dataset, respectively. This further confirms that we did not encounter the problem of overfitting in our logistic model.
 
@@ -318,13 +318,13 @@ One of the most computationally intensive models we experimented with in this pr
 
 In the simplest sense, SVM finds a hyperplane that best separates two different classes. Using a kernel trick, SVM maps non-linear data points to a higher-dimensional space with arbitrary complexity. The model can then find a hyperplane that separates the samples in the transformed space. 
 
-We can think of this as an automated way of creating polynomial terms or interaction terms in logistic regression. We chose the "radial" kernel (RBF or Gaussian) and achieved a **2.17%** test error rate, which is our best result so far. Below is the plot of the class regions for the SVM model using the first two PCs as the predictors. 
+We can think of this as an automated way of creating polynomial terms and interaction terms in logistic regression. We chose the "radial" kernel (RBF or Gaussian) and achieved a **2.17%** misclassification rate, which is our best result so far. Below is the plot of the class regions for the SVM model using the first two PCs as the predictors. 
 
 ```{r fig.cap="Visualization of SVM.", fig.align="center", echo=FALSE}
 knitr::include_graphics('images/svm.png', dpi = 120)
 ```
 
-The built-in `plot()` method doesn't give us a clear visualization because we have 10 classes and 20 predictors, but it still shows us some decision boundaries with only 2 predictors, PC1 and PC2.
+The built-in `plot()` method did not give us a clear visualization with 10 different classes and 20 predictors, so we plot the decision boundary with only 2 predictors. We could plot this model with other predictors, which might generate different decision boundaries, but that would be redundant to illustrate the model. If PC1 and PC2 are adequate to train a classifier with good predictive power and we train our model with PC1 and PC2, we suppose the plot above will have similar pattern as the PCA plot we get in earlier section. 
 
 Unfortunately, we lacked the computing power to apply SVM on the original dataset, so we had to give up on this model eventually. However, we are positive that with the right choosing of kernel and tuned parameters, the SVM will generate a better result than 2.17% on the original dataset. 
 
