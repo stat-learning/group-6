@@ -126,7 +126,7 @@ pred.tree.og <- predict(t.og, newdata = test_df, type = "class")
   sum(conf.tree.og)
 ```
 
-```{r cache=TRUE}
+```{r fig.align="center", fig.width=12, fig.height=8, cache=TRUE}
 # Pruning
 t.og.pruned <- prune(t.og,  t.og$cptable[which.min(t.og$cptable[,"xerror"]),"CP"])
 plot(t.og.pruned)
@@ -299,26 +299,26 @@ pca <- prcomp(train_df[, -1])
 test_pca <- predict(pca, newdata = test_df)
 ```
 
-```{r pca-plot}
+```{r pca-plot, fig.width=11, fig.height=4}
 # Store the first two coordinates and the label in a data frame
 pca_plot <- data.frame(PC1 = pca$x[, "PC1"], PC2 = pca$x[, "PC2"], 
                        label = as.factor(train_df$label))
 
 # Plot the first two PCs on a subset of 250 samples using the true labels as color 
-g <- ggplot(pca_plot[1:250,], aes(x = PC1, y = PC2, color = label)) + 
+p1 <- ggplot(pca_plot[1:250,], aes(x = PC1, y = PC2, color = label)) + 
 	ggtitle("PCA of MNIST sample") + 
 	geom_text(aes(label = label)) + 
 	theme(legend.position = "none")
-```
 
-```{r scree-plot}
 d <- data.frame(PC = 1:784,
                 PVE = pca$sdev^2 / sum(pca$sdev^2))
 
-ggplot(d[1:50,], aes(x = PC, y = PVE)) +
+p2 <- ggplot(d[1:50,], aes(x = PC, y = PVE)) +
   geom_line() + 
   geom_point() +
   theme_bw(base_size = 18)
+
+grid.arrange(p1, p2, ncol = 2)
 ```
 
 We only need 20 PCs to capture 90% of the variance in our dataset.
@@ -339,6 +339,7 @@ pca.tst <- data.frame(label = test_df$label, pca.tst)
 
 pca.tst$label <- as.factor(pca.tst$label)
 ```
+
 
 ## Classification Tree
 
@@ -372,6 +373,13 @@ plot(t.cv$size, t.cv$dev, type = "b", xlab = "n leaves", ylab = "error")
 ```
 
 Not a good case for pruning (best n = 13 was already chosen). 
+
+```{r}
+par(mfrow=c(1,2))
+plot(t1cv$size, t1cv$dev, type = "b", xlab = "n leaves", ylab = "error")
+plot(t.cv$size, t.cv$dev, type = "b", xlab = "n leaves", ylab = "error")
+```
+
 
 ## Random Forest
 
@@ -436,11 +444,11 @@ boost.pca.cv <- gbm(label~., data = pca.tr,
                 shrinkage = 0.1,
                 cv.folds = 5
                 )
-print(boost.pca.cv)
+print(boost.cv)
 ```
 
 ```{r}
-summary(boost.pca.cv)
+summary(boost.cv)
 ```
 
 The best number of trees chosen by the boosted model using 5-fold CV on the PCA dataset is 411.
@@ -610,6 +618,13 @@ plot(raw_log_ridge)
 plot(pca_log_lasso)	
 plot(pca_log_ridge)
 ```
+
+```{r}
+par(mfrow=c(1,2))	
+plot(raw_log_lasso)	
+plot(raw_log_ridge)	
+```
+
 
 ```{r}
 # Summary of MCRs
