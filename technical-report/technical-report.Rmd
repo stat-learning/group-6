@@ -1,7 +1,8 @@
 ---
-title: "Technical Report: Digit Recognition"
-author: "Group 6: Yilin Li, Hien Nguyen, Lyn Peterson"
-date: "12/6/2019"
+title: "Digit Recognition"
+subtitle: "Technical Report"
+author: "Yilin Li, Hien Nguyen, Lyn Peterson"
+date: "12/11/2019"
 output: pdf_document
 ---
 
@@ -24,21 +25,16 @@ library(imager)
 ```
 
 ## Abstract
-**A brief overview of the area that you’ll be investigating, the research question(s) of interest, your approach to analysis, and the general conclusions.**
 
-Overview: This report attempts to model handwritten digit recognition based on 60,000 training images, using PCA, classification trees, random forests, bagging, logistic regression, KNN, and SVM. 
+This report attempts to model handwritten digit recognition based on 60,000 training images from the MNIST dataset, using Principal Component Analysis (PCA), Classification Trees, Random Forests, Bagging, Boosted Trees, Logistic Regression, K Nearest Neighbors (KNN), and Support Vector Machine (SVM). Each model was repeated on both the original dataset and a PCA dataset which had undergone dimension reduction, as the dataset is large and the first 20 principal components were shown to capture 90% of the data variance. Cross validation was performed for each model and model accuracy was scored using the misclassification rate.
 
-Research question: Can we build classifiers to recognize what the digit (0-9) is in a given image based on 60,000 training images?
-
-Approach to analysis: Each of the above models were repeated using both the original data set and a PCA data set which had undergone dimension reduction, as the data set is large and the first 20 PC's were shown to capture 90% of the variance. Cross validation was performed for each model.
-
-General conclusions: The classification trees faired relatively poorly (MSR around 40%) given the limited number of splits. The boosted and bagged trees faired far better (MSR 4-6%), but there was overfitting in the original data bagged tree, and it performed best when considering the least number of predictors at each split. The boosted trees and the logistic regressions performed similarly for the original data (MSR 8%), but the PCA regressions were slightly worse than the PCA boosted tree (12-15% and 10% respectively). KNN and SVM had the lowest MSR's, 2-3%. of all the models for both the original and PCA data sets. We verified our early predictions that 4-9 is the most difficult pair to separate across models, whereas 1 was consistently the easiest class to predict. All models tended to find that pixels or PCs near the center of the image were the most important in prediction. 
+The classification trees faired relatively poorly given the limited number of splits. The boosted and bagged trees faired far better, but there was some observed overfitting in the original data bagged trees, and the model performed best when considering the least number of predictors at each split. The boosted trees and the logistic regressions performed similarly for the original data, but the PCA data regressions were slightly worse than the PCA data boosted tree. KNN and SVM had the lowest misclassification rates of all the models for both the original and PCA data sets. We verified our early predictions that 4-9 is the most difficult pair to separate across models, whereas 1 was consistently the easiest class to predict. All models tended to find that pixels or principle components near the center of the image were the most important in prediction. Our models in general proved to perform on par with published results. 
 
 ## Introduction
 
 The MNIST database of handwritten digits is a classic dataset for machine learners. Most existing
 models nowadays use different geometric properties of digits from complex feature selection. The best
-result is obtained with Convolutional Neural Nets (99.77%). Using our knowledge from this course, we want to build classifiers to recognize what digit (0-9) is displayed in a given image. We are interested in seeing how our models would perform with respect to literature results.
+result in literature is obtained with Convolutional Neural Nets (99.77%). Using our knowledge from this course, we want to build classifiers to recognize what digit (0-9) is displayed in a given image. We are interested in seeing how our models would perform with respect to literature results.
 
 ## The Data
 
@@ -125,7 +121,7 @@ for (i in 1:25){
 
 For each digit, we averaged over all pixels in corresponding input to obtain a mean image (Figure 3). 
 
-We computed the Euclidean distance from each input to its mean image. We plot the image-to-mean distance distribution for each digit. 
+We computed the Euclidean distance from each input to its mean image. We plot the sample-to-mean distance distribution for each digit. 
 
 ```{r data-preprocessing, cache=TRUE, fig.cap="Density distribution of the Euclidean distances from each input image to its mean form", fig.align="center", echo=FALSE}
 # for each digit class, calculate the mean digit, mean distance from the mean digit and 
@@ -167,7 +163,7 @@ for (i in 1:10){
 From the distance summary table (Appendix A), we can see that digit 1 has the lowest mean distance; this indicates that most people write it similarly. 2 has the highest mean distance, so people tend to write 2 in different ways. We also see that 6 and 9 have the highest distance variance, which suggests these two digits have the most variation in people's writing styles. 
 
 
-**Principal Component Analysis & Early Predictions**
+**Principal Component Analysis and Early Predictions**
 
 Since the MNIST dataset is large, we employed an unsupervised technique, Principal Component Analysis (PCA), to reduce the dimension of the dataset. We fit PCA on both the training and test dataset. From the scree plot (Figure 5b), we found that the first 20 principal components were able to capture around 90% of the variance in our data. 
 
@@ -195,7 +191,7 @@ Our first pruned classification tree had limited success. Even without pruning, 
 knitr::include_graphics('images/tree-prune-both.png', dpi = 150)
 ```
 
-Looking at the tree plot (Figure 7), the important pixels (at each split) seem to be near the center of the image (around 400). The misclassification rate is near 40% (36.52%), as this is a rather weak model with a limited numer of splits.
+The tree plot shows that the important pixels (at each split) seem to be near the center of the image (around 400) (Figure 7). The misclassification rate is near 40% (36.52%), as this is a rather weak model with a limited numer of splits.
 
 ```{r fig.cap="Tree plot for the original dataset", fig.align="center", echo=FALSE}
 knitr::include_graphics('images/tree-og-plot.png', dpi = 180)
